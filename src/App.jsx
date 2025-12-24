@@ -1,0 +1,2125 @@
+import React, { useState, useEffect, useRef } from "react";
+import { initializeApp } from "firebase/app";
+import {
+  getAuth,
+  signInAnonymously,
+  onAuthStateChanged,
+  signInWithCustomToken,
+} from "firebase/auth";
+import {
+  getFirestore,
+  doc,
+  setDoc,
+  getDoc,
+  updateDoc,
+  deleteDoc,
+  onSnapshot,
+  arrayUnion,
+  increment,
+} from "firebase/firestore";
+import {
+  Ghost,
+  Coins,
+  Shield,
+  Sword,
+  Users,
+  Briefcase,
+  Zap,
+  Crown,
+  LogOut,
+  BookOpen,
+  History,
+  X,
+  User,
+  CheckCircle,
+  AlertTriangle,
+  RotateCcw,
+  Trophy,
+  Hand,
+  Eye,
+  Gavel,
+  Lock,
+  Search,
+  Dice5,
+  Copy,
+  Scale,
+  Megaphone,
+  Skull,
+  ArrowRightLeft,
+  Info,
+  Trash2,
+  Hourglass,
+  Sunrise,
+  Moon,
+  Receipt,
+  Hammer,
+  Sparkles,
+} from "lucide-react";
+
+// ---------------------------------------------------------------------------
+// CONFIGURATION
+// ---------------------------------------------------------------------------
+const firebaseConfig = {
+  apiKey: "AIzaSyBjIjK53vVJW1y5RaqEFGSFp0ECVDBEe1o",
+  authDomain: "game-hub-ff8aa.firebaseapp.com",
+  projectId: "game-hub-ff8aa",
+  storageBucket: "game-hub-ff8aa.firebasestorage.app",
+  messagingSenderId: "586559578902",
+  appId: "1:586559578902:web:0dfb631ed63cef956aa637",
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+const APP_ID = typeof __app_id !== "undefined" ? __app_id : "guild-shadows";
+const GAME_ID = "15";
+// ---------------------------------------------------------------------------
+// GAME DATA & CONSTANTS
+// ---------------------------------------------------------------------------
+
+const AGENT_LIFESPAN = 3;
+
+const CARDS = {
+  URCHIN: {
+    id: "URCHIN",
+    name: "Street Urchin",
+    type: "ACTION",
+    cost: 0,
+    desc: "Gain 2 Gold from the supply.",
+    icon: Coins,
+    color: "text-amber-400",
+    bg: "bg-amber-950",
+    border: "border-amber-700",
+  },
+  THIEF: {
+    id: "THIEF",
+    name: "Master Thief",
+    type: "ACTION",
+    cost: 0,
+    desc: "Steal 2 Gold from a player.",
+    icon: Hand,
+    color: "text-purple-400",
+    bg: "bg-purple-950",
+    border: "border-purple-700",
+  },
+  HEIST: {
+    id: "HEIST",
+    name: "Grand Heist",
+    type: "ACTION",
+    cost: 1,
+    desc: "Risk: 50% get 5 Gold, 50% nothing.",
+    icon: Dice5,
+    color: "text-orange-400",
+    bg: "bg-orange-950",
+    border: "border-orange-700",
+  },
+  ASSASSIN: {
+    id: "ASSASSIN",
+    name: "Night Blade",
+    type: "ACTION",
+    cost: 2,
+    desc: "Destroy a specific Agent.",
+    icon: Skull,
+    color: "text-red-500",
+    bg: "bg-red-950",
+    border: "border-red-800",
+  },
+  BLACKMAIL: {
+    id: "BLACKMAIL",
+    name: "Blackmail",
+    type: "ACTION",
+    cost: 3,
+    desc: "Steal an Agent OR Steal 4 Gold.",
+    icon: Gavel,
+    color: "text-pink-400",
+    bg: "bg-pink-950",
+    border: "border-pink-700",
+  },
+  DOPPELGANGER: {
+    id: "DOPPELGANGER",
+    name: "Doppelganger",
+    type: "ACTION",
+    cost: 3,
+    desc: "Copy effect of last Action card.",
+    icon: Copy,
+    color: "text-cyan-400",
+    bg: "bg-cyan-950",
+    border: "border-cyan-700",
+  },
+  MERCHANT: {
+    id: "MERCHANT",
+    name: "Silk Trader",
+    type: "AGENT",
+    cost: 2,
+    desc: "+1 Gold at start of your turn.",
+    icon: Briefcase,
+    color: "text-emerald-400",
+    bg: "bg-emerald-900",
+    border: "border-emerald-600",
+  },
+  LOOKOUT: {
+    id: "LOOKOUT",
+    name: "Lookout",
+    type: "AGENT",
+    cost: 2,
+    desc: "Peek at the top card of the deck.",
+    icon: Search,
+    color: "text-indigo-300",
+    bg: "bg-indigo-900",
+    border: "border-indigo-600",
+  },
+  BODYGUARD: {
+    id: "BODYGUARD",
+    name: "Iron Guard",
+    type: "AGENT",
+    cost: 3,
+    desc: "Immune to theft & assassination.",
+    icon: Shield,
+    color: "text-blue-400",
+    bg: "bg-blue-900",
+    border: "border-blue-600",
+  },
+  POLITICIAN: {
+    id: "POLITICIAN",
+    name: "Corrupt Senator",
+    type: "AGENT",
+    cost: 4,
+    desc: "Gain 1 Gold when others play Actions.",
+    icon: Scale,
+    color: "text-yellow-200",
+    bg: "bg-yellow-900",
+    border: "border-yellow-600",
+  },
+  SABOTEUR: {
+    id: "SABOTEUR",
+    name: "Saboteur",
+    type: "AGENT",
+    cost: 4,
+    desc: "Others pay +1 Gold to play Actions.",
+    icon: AlertTriangle,
+    color: "text-orange-500",
+    bg: "bg-stone-800",
+    border: "border-orange-800",
+  },
+};
+
+const DECK_COMPOSITION = [
+  ...Array(6).fill("URCHIN"),
+  ...Array(5).fill("THIEF"),
+  ...Array(4).fill("HEIST"),
+  ...Array(3).fill("ASSASSIN"),
+  ...Array(3).fill("BLACKMAIL"),
+  ...Array(2).fill("DOPPELGANGER"),
+  ...Array(4).fill("MERCHANT"),
+  ...Array(3).fill("LOOKOUT"),
+  ...Array(3).fill("BODYGUARD"),
+  ...Array(2).fill("POLITICIAN"),
+  ...Array(2).fill("SABOTEUR"),
+];
+
+// ---------------------------------------------------------------------------
+// UTILITIES
+// ---------------------------------------------------------------------------
+const shuffle = (array) => {
+  let currentIndex = array.length,
+    randomIndex;
+  while (currentIndex !== 0) {
+    randomIndex = Math.floor(Math.random() * currentIndex);
+    currentIndex--;
+    [array[currentIndex], array[randomIndex]] = [
+      array[randomIndex],
+      array[currentIndex],
+    ];
+  }
+  return array;
+};
+
+const calculateWinGoal = (playerCount) => {
+  if (playerCount <= 2) return 20;
+  if (playerCount === 3) return 18;
+  return 15;
+};
+
+// ---------------------------------------------------------------------------
+// UI COMPONENTS
+// ---------------------------------------------------------------------------
+
+const FloatingBackground = () => (
+  <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+    <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-gray-900 via-gray-950 to-black" />
+    <div className="absolute top-0 left-0 w-full h-full bg-purple-900/10 mix-blend-overlay" />
+  </div>
+);
+
+const FeedbackOverlay = ({ type, message, subtext, icon: Icon }) => (
+  <div className="fixed inset-0 z-[160] flex items-center justify-center pointer-events-none animate-in fade-in zoom-in duration-300 px-4">
+    <div
+      className={`
+      flex flex-col items-center justify-center p-6 md:p-12 rounded-3xl border-4 shadow-2xl backdrop-blur-xl max-w-lg w-full text-center
+      ${
+        type === "success"
+          ? "bg-green-950/90 border-green-500 text-green-100"
+          : type === "failure"
+          ? "bg-red-950/90 border-red-500 text-red-100"
+          : "bg-blue-950/90 border-blue-500 text-blue-100"
+      }
+    `}
+    >
+      {Icon && (
+        <div className="mb-4 p-4 bg-black/20 rounded-full">
+          <Icon size={48} className="animate-bounce" />
+        </div>
+      )}
+      <h2 className="text-2xl md:text-4xl font-black uppercase tracking-widest drop-shadow-md mb-2">
+        {message}
+      </h2>
+      {subtext && (
+        <p className="text-sm md:text-lg font-bold opacity-90 tracking-wide">
+          {subtext}
+        </p>
+      )}
+    </div>
+  </div>
+);
+
+const CardDisplay = ({
+  cardId,
+  onClick,
+  disabled,
+  highlight,
+  small,
+  tiny,
+  turnsLeft,
+  showCost = true,
+}) => {
+  const card = CARDS[cardId];
+  if (!card) return <div className="w-16 h-24 bg-gray-800 rounded"></div>;
+
+  if (tiny) {
+    return (
+      <div
+        className={`relative w-5 h-7 md:w-6 md:h-8 rounded flex items-center justify-center ${card.bg} border ${card.border} shadow-sm`}
+        title={card.name}
+      >
+        <card.icon className={`${card.color} w-3 h-3`} />
+        {turnsLeft !== undefined && (
+          <div className="absolute -top-1 -right-1 bg-black text-[8px] text-white w-3 h-3 rounded-full flex items-center justify-center border border-gray-500">
+            {turnsLeft}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  const sizeClasses = small
+    ? "w-16 h-28 md:w-20 md:h-32 p-1.5"
+    : "w-24 h-36 md:w-32 md:h-48 p-2 md:p-3";
+  const iconSize = small ? 18 : 32;
+
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={`
+        relative rounded-xl border-2 shadow-lg transition-all flex flex-col items-center justify-between cursor-pointer active:scale-95 touch-manipulation overflow-visible
+        ${sizeClasses} ${card.bg} ${
+        highlight ? "ring-4 ring-yellow-400 z-10 scale-105" : card.border
+      }
+        ${
+          disabled
+            ? "opacity-50 grayscale cursor-not-allowed"
+            : "hover:scale-105 hover:brightness-110"
+        }
+      `}
+    >
+      <div className="w-full flex justify-between items-center text-[8px] md:text-[10px] font-bold text-gray-300">
+        <span
+          className={card.type === "AGENT" ? "text-blue-300" : "text-amber-200"}
+        >
+          {card.type === "AGENT" ? "AGT" : "ACT"}
+        </span>
+        {showCost && card.cost > 0 && (
+          <span className="bg-black/50 px-1 rounded text-yellow-400 flex items-center gap-0.5">
+            {card.cost} <Coins size={8} />
+          </span>
+        )}
+      </div>
+
+      <div className="flex-1 flex items-center justify-center my-1 relative">
+        <card.icon className={`${card.color}`} size={iconSize} />
+        {turnsLeft !== undefined && (
+          <div className="absolute -bottom-1 -right-1 flex items-center gap-0.5 bg-black/80 px-1.5 py-0.5 rounded-full border border-gray-600 shadow-md">
+            <Hourglass size={8} className="text-gray-400" />
+            <span className="text-[10px] text-white font-bold">
+              {turnsLeft}
+            </span>
+          </div>
+        )}
+      </div>
+
+      <div className="w-full text-center">
+        <div className="font-bold text-white text-[9px] md:text-xs leading-tight mb-1 line-clamp-1">
+          {card.name}
+        </div>
+        <div
+          className={`
+            text-gray-400 leading-tight bg-black/40 rounded flex items-center justify-center px-1
+            ${
+              small ? "text-[8px] h-8 overflow-hidden" : "text-[9px] h-auto p-1"
+            }
+        `}
+        >
+          {card.desc}
+        </div>
+      </div>
+    </button>
+  );
+};
+
+const GuideModal = ({ onClose }) => (
+  <div className="fixed inset-0 bg-black/95 z-[200] p-4 flex items-center justify-center">
+    <div className="bg-gray-900 w-full max-w-2xl max-h-[85vh] flex flex-col rounded-2xl border border-gray-800 overflow-hidden shadow-2xl">
+      <div className="p-4 border-b border-gray-800 flex justify-between items-center bg-gray-950">
+        <h2 className="font-serif text-xl font-bold text-purple-400 flex items-center gap-2">
+          <BookOpen size={18} /> Guild Archives
+        </h2>
+        <button
+          onClick={onClose}
+          className="p-2 hover:bg-gray-800 rounded-full"
+        >
+          <X size={20} />
+        </button>
+      </div>
+      <div className="flex-1 overflow-y-auto p-6 text-sm text-gray-300 space-y-8">
+        <section className="bg-purple-900/10 p-4 rounded-xl border border-purple-500/20">
+          <h3 className="font-bold text-xl text-white mb-2 flex items-center gap-2">
+            <Trophy size={18} className="text-yellow-400" /> Victory Condition
+          </h3>
+          <p>
+            Amass enough Gold to buy control of the Guild. The amount required
+            changes based on the number of players:
+          </p>
+          <ul className="list-disc pl-5 mt-2 space-y-1 text-gray-400">
+            <li>
+              <strong>2 Players:</strong> 20 Gold
+            </li>
+            <li>
+              <strong>3 Players:</strong> 18 Gold
+            </li>
+            <li>
+              <strong>4+ Players:</strong> 15 Gold
+            </li>
+          </ul>
+        </section>
+
+        <section>
+          <h3 className="font-bold text-lg text-amber-400 mb-3 border-b border-gray-700 pb-1 flex items-center gap-2">
+            <Zap size={18} /> Actions{" "}
+            <span className="text-xs text-gray-500 font-normal ml-auto">
+              (Discarded after use)
+            </span>
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {[
+              CARDS.URCHIN,
+              CARDS.THIEF,
+              CARDS.HEIST,
+              CARDS.ASSASSIN,
+              CARDS.BLACKMAIL,
+              CARDS.DOPPELGANGER,
+            ].map((c) => (
+              <div
+                key={c.id}
+                className="bg-gray-800/50 p-2 rounded border border-gray-700 flex items-start gap-2"
+              >
+                <div className={`p-2 rounded bg-black/30 ${c.color}`}>
+                  <c.icon size={16} />
+                </div>
+                <div>
+                  <div className={`font-bold ${c.color}`}>
+                    {c.name} (Cost {c.cost})
+                  </div>
+                  <div className="text-xs text-gray-400">{c.desc}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section>
+          <h3 className="font-bold text-lg text-blue-400 mb-3 border-b border-gray-700 pb-1 flex items-center gap-2">
+            <Users size={18} /> Agents{" "}
+            <span className="text-xs text-gray-500 font-normal ml-auto">
+              (Last for 3 Turns)
+            </span>
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {[
+              CARDS.MERCHANT,
+              CARDS.LOOKOUT,
+              CARDS.BODYGUARD,
+              CARDS.POLITICIAN,
+              CARDS.SABOTEUR,
+            ].map((c) => (
+              <div
+                key={c.id}
+                className="bg-gray-800/50 p-2 rounded border border-gray-700 flex items-start gap-2"
+              >
+                <div className={`p-2 rounded bg-black/30 ${c.color}`}>
+                  <c.icon size={16} />
+                </div>
+                <div>
+                  <div className={`font-bold ${c.color}`}>
+                    {c.name} (Cost {c.cost})
+                  </div>
+                  <div className="text-xs text-gray-400">{c.desc}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="bg-gray-800 p-4 rounded-xl border border-gray-700">
+          <h3 className="font-bold text-white mb-2">Game Mechanics</h3>
+          <ul className="list-disc pl-4 space-y-2 text-gray-400">
+            <li>
+              <strong>Scouting:</strong> When you Pass, you enter{" "}
+              <strong>Scout Mode</strong>. Select a card from your hand to
+              discard, and you will draw a replacement.
+            </li>
+            <li>
+              <strong>Agent Decay:</strong> All Agents (Merchants, Bodyguards,
+              etc.) leave your service after <strong>3 turns</strong>. Plan
+              accordingly.
+            </li>
+            <li>
+              <strong>Taxes & Corruption:</strong> Saboteurs tax opponents.
+              Politicians profit from opponent actions.
+            </li>
+            <li>
+              <strong>Pity Bonus:</strong> Start your turn with 0 gold? Get +1
+              extra gold from the guild.
+            </li>
+          </ul>
+        </section>
+      </div>
+    </div>
+  </div>
+);
+
+const ReportPopup = ({
+  title,
+  children,
+  onClose,
+  icon: Icon,
+  colorClass,
+  borderColor,
+}) => (
+  <div
+    className={`absolute bottom-[200px] left-1/2 -translate-x-1/2 z-[100] w-72 md:w-80 animate-in slide-in-from-bottom-5 fade-in duration-300`}
+  >
+    <div
+      className={`bg-gray-900/95 backdrop-blur-md border-2 ${borderColor} rounded-xl shadow-[0_0_30px_rgba(0,0,0,0.5)] overflow-hidden flex flex-col`}
+    >
+      <div
+        className={`p-3 border-b ${borderColor} bg-black/40 flex justify-between items-center`}
+      >
+        <div className={`font-bold flex items-center gap-2 ${colorClass}`}>
+          <Icon size={18} /> {title}
+        </div>
+        <button
+          onClick={onClose}
+          className="hover:bg-white/10 rounded p-1 transition-colors"
+        >
+          <X size={16} />
+        </button>
+      </div>
+      <div className="p-4 text-sm text-gray-200">{children}</div>
+    </div>
+  </div>
+);
+
+const MorningReport = ({ report, onClose }) => {
+  if (!report) return null;
+  return (
+    <ReportPopup
+      title="Morning Report"
+      icon={Sunrise}
+      colorClass="text-purple-300"
+      borderColor="border-purple-500/50"
+      onClose={onClose}
+    >
+      <div className="space-y-3">
+        <div className="bg-black/40 p-2 rounded border border-gray-700">
+          <div className="text-[10px] text-gray-400 uppercase font-bold mb-1">
+            Income
+          </div>
+          {report.breakdown && report.breakdown.length > 0 ? (
+            <div className="space-y-1">
+              {report.breakdown.map((item, i) => (
+                <div key={i} className="flex justify-between text-xs">
+                  <span className="text-gray-300">{item.source}</span>
+                  <span className="text-green-400 font-mono">
+                    +{item.amount}
+                  </span>
+                </div>
+              ))}
+              <div className="border-t border-gray-600 mt-1 pt-1 flex justify-between font-bold">
+                <span>Total</span>
+                <span className="text-green-400">+{report.income}</span>
+              </div>
+            </div>
+          ) : (
+            <div className="text-xs text-gray-500 italic">
+              No income generated.
+            </div>
+          )}
+        </div>
+
+        {report.expired.length > 0 && (
+          <div className="bg-red-900/20 p-2 rounded border border-red-900/40">
+            <div className="text-[10px] text-red-300 uppercase font-bold mb-1 flex items-center gap-1">
+              <LogOut size={10} /> Departed Agents
+            </div>
+            <div className="flex flex-wrap gap-1">
+              {report.expired.map((cId, i) => (
+                <span
+                  key={i}
+                  className="text-[10px] text-gray-300 bg-black/40 px-1.5 py-0.5 rounded border border-gray-700"
+                >
+                  {CARDS[cId]?.name}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </ReportPopup>
+  );
+};
+
+const EveningReport = ({ report, onClose }) => {
+  if (!report) return null;
+  return (
+    <ReportPopup
+      title="Evening Report"
+      icon={Moon}
+      colorClass="text-indigo-300"
+      borderColor="border-indigo-500/50"
+      onClose={onClose}
+    >
+      <div className="space-y-3">
+        <div className="text-center">
+          <div className="text-xs text-gray-400 uppercase">Action</div>
+          <div className="font-bold text-white text-lg">
+            {report.actionName}
+          </div>
+        </div>
+
+        <div className="bg-black/40 p-2 rounded border border-gray-700 space-y-1">
+          <div className="flex justify-between text-xs">
+            <span className="text-gray-400">Cost</span>
+            <span className="text-red-400 font-mono">-{report.cost}</span>
+          </div>
+          {report.tax > 0 && (
+            <div className="flex justify-between text-xs">
+              <span className="text-red-400">Saboteur Tax</span>
+              <span className="text-red-400 font-mono">-{report.tax}</span>
+            </div>
+          )}
+          {report.gains.map((g, i) => (
+            <div
+              key={i}
+              className="flex justify-between text-xs border-t border-gray-800 pt-1 mt-1"
+            >
+              <span className="text-gray-300">{g.desc}</span>
+              <span className="text-green-400 font-mono">+{g.amount}</span>
+            </div>
+          ))}
+
+          <div className="border-t border-gray-600 mt-1 pt-1 flex justify-between font-bold">
+            <span>Net Change</span>
+            <span
+              className={
+                report.netChange >= 0 ? "text-green-400" : "text-red-400"
+              }
+            >
+              {report.netChange > 0 ? "+" : ""}
+              {report.netChange}
+            </span>
+          </div>
+        </div>
+      </div>
+    </ReportPopup>
+  );
+};
+
+// ---------------------------------------------------------------------------
+// MAIN GAME LOGIC
+// ---------------------------------------------------------------------------
+
+export default function GuildOfShadows() {
+  const [user, setUser] = useState(null);
+  const [view, setView] = useState("menu");
+  const [playerName, setPlayerName] = useState("");
+  const [roomCode, setRoomCode] = useState("");
+
+  const [gameState, setGameState] = useState(null);
+  const [error, setError] = useState("");
+
+  // PERSISTENCE FIX: Load room ID from local storage
+  const [roomId, setRoomId] = useState(
+    localStorage.getItem("guild_room_id") || ""
+  );
+  const [isMaintenance, setIsMaintenance] = useState(false);
+
+  // UI States
+  const [selectedCardIdx, setSelectedCardIdx] = useState(null);
+  const [feedback, setFeedback] = useState(null);
+  const [showGuide, setShowGuide] = useState(false);
+  const [showLogs, setShowLogs] = useState(false);
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
+  const [targetMode, setTargetMode] = useState(null); // PLAYER, CARD, OPTION, SCOUT
+  const [selectedTargetPlayerId, setSelectedTargetPlayerId] = useState(null);
+  const [peekCard, setPeekCard] = useState(null);
+
+  // Local Report States (To prevent showing other people's reports if game state updates)
+  const [morningReportData, setMorningReportData] = useState(null);
+  const [eveningReportData, setEveningReportData] = useState(null);
+
+  // --- AUTH & SYNC ---
+  useEffect(() => {
+    const initAuth = async () => {
+      if (typeof __initial_auth_token !== "undefined" && __initial_auth_token) {
+        await signInWithCustomToken(auth, __initial_auth_token);
+      } else {
+        await signInAnonymously(auth);
+      }
+    };
+    initAuth();
+    return onAuthStateChanged(auth, setUser);
+  }, []);
+
+  // --- NAVIGATION GUARD ---
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      if (roomId) {
+        e.preventDefault();
+        e.returnValue = "";
+        return "";
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [roomId]);
+
+  useEffect(() => {
+    if (!roomId || !user) return;
+    return onSnapshot(
+      doc(db, "artifacts", APP_ID, "public", "data", "rooms", roomId),
+      (snap) => {
+        if (snap.exists()) {
+          const data = snap.data();
+          const amIInRoom = data.players.some((p) => p.id === user.uid);
+
+          if (!amIInRoom) {
+            setRoomId("");
+            setView("menu");
+            setError("You have been removed from the guild.");
+            return;
+          }
+
+          setGameState(data);
+
+          // --- REPORT CAPTURE ---
+          // We copy the report to local state if it belongs to us.
+          // This persists it on screen even if the DB object changes to another player's report later.
+
+          // 1. Morning Report
+          if (
+            data.status === "playing" &&
+            data.turnReport &&
+            data.turnReport.playerId === user.uid &&
+            !data.turnReport.seen
+          ) {
+            setMorningReportData(data.turnReport);
+            setEveningReportData(null); // Clear evening if morning arrives
+          }
+
+          // 2. Evening Report
+          if (
+            data.status === "playing" &&
+            data.eveningReport &&
+            data.eveningReport.playerId === user.uid &&
+            !data.eveningReport.seen
+          ) {
+            setEveningReportData(data.eveningReport);
+            setMorningReportData(null); // Clear morning if evening arrives
+          }
+
+          if (data.status === "lobby") setView("lobby");
+          else if (data.status === "playing" || data.status === "finished")
+            setView("game");
+        } else {
+          setRoomId("");
+          setView("menu");
+          setError("The Guild Hall was disbanded by the host.");
+        }
+      },
+      (err) => console.error(err)
+    );
+  }, [roomId, user]);
+
+  useEffect(() => {
+    const unsub = onSnapshot(doc(db, "game_hub_settings", "config"), (doc) => {
+      if (doc.exists() && doc.data()[GAME_ID]?.maintenance)
+        setIsMaintenance(true);
+      else setIsMaintenance(false);
+    });
+    return () => unsub();
+  }, []);
+
+  // --- ACTIONS ---
+
+  const triggerFeedback = (type, msg, sub, icon) => {
+    setFeedback({ type, message: msg, subtext: sub, icon });
+    setTimeout(() => setFeedback(null), 2500);
+  };
+
+  const createRoom = async () => {
+    if (!playerName) return setError("Enter Alias");
+    const newId = Math.random().toString(36).substring(2, 7).toUpperCase();
+    await setDoc(
+      doc(db, "artifacts", APP_ID, "public", "data", "rooms", newId),
+      {
+        roomId: newId,
+        hostId: user.uid,
+        status: "lobby",
+        players: [
+          {
+            id: user.uid,
+            name: playerName,
+            gold: 0,
+            hand: [],
+            tableau: [],
+            ready: false,
+          },
+        ],
+        deck: [],
+        discardPile: [],
+        turnIndex: 0,
+        logs: [],
+        lastAction: null,
+        turnReport: null,
+        eveningReport: null,
+      }
+    );
+    setRoomId(newId);
+    localStorage.setItem("guild_room_id", newId); // Persist
+    setLoading(false);
+  };
+
+  const joinRoom = async () => {
+    if (!roomCode || !playerName) return setError("Enter Info");
+    const ref = doc(
+      db,
+      "artifacts",
+      APP_ID,
+      "public",
+      "data",
+      "rooms",
+      roomCode
+    );
+    const snap = await getDoc(ref);
+    if (!snap.exists()) return setError("Invalid Room");
+    const data = snap.data();
+    if (data.status !== "lobby") return setError("Game Started");
+    if (data.players.length >= 6) return setError("Room Full");
+
+    await updateDoc(ref, {
+      players: [
+        ...data.players,
+        {
+          id: user.uid,
+          name: playerName,
+          gold: 0,
+          hand: [],
+          tableau: [],
+          ready: false,
+        },
+      ],
+    });
+    setRoomId(roomCode);
+    localStorage.setItem("guild_room_id", roomCode); // Persist
+    setLoading(false);
+  };
+
+  const kickPlayer = async (pidToKick) => {
+    if (gameState.hostId !== user.uid) return;
+    const newPlayers = gameState.players.filter((p) => p.id !== pidToKick);
+    await updateDoc(
+      doc(db, "artifacts", APP_ID, "public", "data", "rooms", roomId),
+      {
+        players: newPlayers,
+      }
+    );
+  };
+
+  const handleLeaveRoom = async () => {
+    if (!gameState) return;
+    if (gameState.hostId === user.uid) {
+      // Host leaves -> Delete Room
+      await deleteDoc(
+        doc(db, "artifacts", APP_ID, "public", "data", "rooms", roomId)
+      );
+    } else {
+      const newPlayers = gameState.players.filter((p) => p.id !== user.uid);
+      await updateDoc(
+        doc(db, "artifacts", APP_ID, "public", "data", "rooms", roomId),
+        {
+          players: newPlayers,
+        }
+      );
+    }
+    setRoomId("");
+    localStorage.removeItem("guild_room_id");
+    setView("menu");
+    setShowLeaveConfirm(false);
+  };
+
+  const startGame = async () => {
+    if (gameState.hostId !== user.uid) return;
+    const deck = shuffle([...DECK_COMPOSITION]);
+    const players = gameState.players.map((p) => ({
+      ...p,
+      hand: [deck.pop(), deck.pop()],
+      tableau: [],
+      gold: 2,
+      ready: false,
+    }));
+
+    await updateDoc(
+      doc(db, "artifacts", APP_ID, "public", "data", "rooms", roomId),
+      {
+        status: "playing",
+        deck,
+        players,
+        turnIndex: 0,
+        logs: [
+          {
+            text: "The struggle for the Guild begins...",
+            type: "neutral",
+            id: Date.now(),
+          },
+        ],
+        lastAction: null,
+        turnReport: null,
+        eveningReport: null,
+      }
+    );
+  };
+
+  const toggleReady = async () => {
+    const players = gameState.players.map((p) => {
+      if (p.id === user.uid) return { ...p, ready: !p.ready };
+      return p;
+    });
+    await updateDoc(
+      doc(db, "artifacts", APP_ID, "public", "data", "rooms", roomId),
+      { players }
+    );
+  };
+
+  const returnToLobby = async () => {
+    if (gameState.hostId !== user.uid) return;
+    const players = gameState.players.map((p) => ({
+      ...p,
+      hand: [],
+      tableau: [],
+      gold: 0,
+      ready: false,
+    }));
+    await updateDoc(
+      doc(db, "artifacts", APP_ID, "public", "data", "rooms", roomId),
+      {
+        status: "lobby",
+        deck: [],
+        discardPile: [],
+        winnerId: null,
+        logs: [],
+        players,
+      }
+    );
+    setShowLeaveConfirm(false);
+  };
+
+  // --- GAMEPLAY ENGINE ---
+
+  const getTaxAmount = (players, actorId) => {
+    let tax = 0;
+    players.forEach((p) => {
+      if (p.id !== actorId) {
+        const count = p.tableau.filter((c) => c.cardId === "SABOTEUR").length;
+        tax += count;
+      }
+    });
+    return tax;
+  };
+
+  const payPoliticians = (players, actorId) => {
+    players.forEach((p) => {
+      if (p.id !== actorId) {
+        const count = p.tableau.filter((c) => c.cardId === "POLITICIAN").length;
+        if (count > 0) p.gold += count;
+      }
+    });
+  };
+
+  const nextTurn = async (
+    updatedPlayers,
+    deck,
+    discardPile,
+    logs,
+    lastAction = null,
+    eveningReport = null
+  ) => {
+    let nextIdx = (gameState.turnIndex + 1) % updatedPlayers.length;
+    let nextPlayer = updatedPlayers[nextIdx];
+
+    // --- AGENT DECAY LOGIC ---
+    const expiredAgents = [];
+    const survivedAgents = [];
+
+    nextPlayer.tableau.forEach((agent) => {
+      agent.turnsLeft -= 1;
+      if (agent.turnsLeft <= 0) {
+        expiredAgents.push(agent.cardId);
+        discardPile.push(agent.cardId);
+      } else {
+        survivedAgents.push(agent);
+      }
+    });
+    nextPlayer.tableau = survivedAgents;
+
+    // --- INCOME ---
+    let totalIncome = 0;
+    const incomeBreakdown = [];
+
+    // 1. Guild Stipend
+    incomeBreakdown.push({ source: "Guild Stipend", amount: 1 });
+    totalIncome += 1;
+
+    // 2. Merchants
+    nextPlayer.tableau.forEach((c) => {
+      if (c.cardId === "MERCHANT") {
+        incomeBreakdown.push({ source: "Silk Trader", amount: 1 });
+        totalIncome += 1;
+      }
+    });
+
+    // 3. Pity Bonus
+    if (nextPlayer.gold === 0) {
+      incomeBreakdown.push({ source: "Pity Bonus", amount: 1 });
+      totalIncome += 1;
+    }
+
+    nextPlayer.gold += totalIncome;
+
+    // --- LOGS & REPORT ---
+    if (expiredAgents.length > 0) {
+      logs.push({
+        text: `${nextPlayer.name} lost ${expiredAgents.length} agents to time.`,
+        type: "warning",
+        id: Date.now(),
+      });
+    }
+    logs.push({
+      text: `${nextPlayer.name} begins turn (+${totalIncome} Gold).`,
+      type: "neutral",
+      id: Date.now() + 1,
+    });
+
+    const turnReport = {
+      playerId: nextPlayer.id,
+      income: totalIncome,
+      breakdown: incomeBreakdown,
+      expired: expiredAgents,
+      seen: false,
+    };
+
+    // --- WIN CHECK ---
+    const goal = calculateWinGoal(updatedPlayers.length);
+    if (nextPlayer.gold >= goal) {
+      const finalPlayers = updatedPlayers.map((p) => ({ ...p, ready: false }));
+      await updateDoc(
+        doc(db, "artifacts", APP_ID, "public", "data", "rooms", roomId),
+        {
+          players: finalPlayers,
+          status: "finished",
+          winnerId: nextPlayer.id,
+          logs: arrayUnion({
+            text: `🏆 ${nextPlayer.name} has bought the Guild!`,
+            type: "success",
+            id: Date.now() + 2,
+          }),
+        }
+      );
+      return;
+    }
+
+    // --- DRAW ---
+    if (deck.length === 0) {
+      if (discardPile.length > 0) {
+        deck = shuffle([...discardPile]);
+        discardPile = [];
+        logs.push({
+          text: "Deck reshuffled.",
+          type: "warning",
+          id: Date.now() + 3,
+        });
+      } else {
+        logs.push({ text: "Deck empty!", type: "danger", id: Date.now() + 3 });
+      }
+    }
+
+    if (deck.length > 0) {
+      nextPlayer.hand.push(deck.pop());
+    }
+
+    await updateDoc(
+      doc(db, "artifacts", APP_ID, "public", "data", "rooms", roomId),
+      {
+        players: updatedPlayers,
+        deck,
+        discardPile,
+        turnIndex: nextIdx,
+        logs: arrayUnion(...logs),
+        lastAction: lastAction !== null ? lastAction : gameState.lastAction,
+        turnReport,
+        eveningReport: eveningReport, // Generated for the player who JUST finished
+      }
+    );
+  };
+
+  const executeCardEffect = async (
+    cardId,
+    targetPlayerId,
+    secondaryTarget,
+    players,
+    deck,
+    discardPile,
+    logs,
+    meIdx,
+    tax
+  ) => {
+    const me = players[meIdx];
+    const card = CARDS[cardId];
+
+    let reportGains = [];
+    let netChange = -(card.cost + tax);
+
+    // Pay Cost
+    me.gold -= card.cost + tax;
+
+    if (card.type === "ACTION") payPoliticians(players, me.id);
+
+    const handIdx = me.hand.indexOf(cardId);
+    if (handIdx > -1) me.hand.splice(handIdx, 1);
+
+    let newLastAction = gameState.lastAction;
+
+    if (card.type === "AGENT") {
+      me.tableau.push({ cardId, turnsLeft: AGENT_LIFESPAN });
+      logs.push({
+        text: `🏰 ${me.name} recruited ${card.name}.`,
+        type: "success",
+        id: Date.now(),
+      });
+      reportGains.push({ desc: "Recruited Agent", amount: 0 });
+    } else {
+      discardPile.push(cardId);
+      newLastAction = { cardId, playerId: me.id };
+
+      if (cardId === "URCHIN") {
+        me.gold += 2;
+        netChange += 2;
+        reportGains.push({ desc: "Street Urchin", amount: 2 });
+        logs.push({
+          text: `💰 ${me.name} used Urchin (+2 Gold).`,
+          type: "neutral",
+          id: Date.now(),
+        });
+      } else if (cardId === "HEIST") {
+        const roll = Math.floor(Math.random() * 6) + 1;
+        if (roll >= 4) {
+          me.gold += 5;
+          netChange += 5;
+          reportGains.push({ desc: "Heist Success", amount: 5 });
+          logs.push({
+            text: `🎲 ${me.name} pulled off a Heist! (+5 Gold)`,
+            type: "success",
+            id: Date.now(),
+          });
+        } else {
+          reportGains.push({ desc: "Heist Failed", amount: 0 });
+          logs.push({
+            text: `🎲 ${me.name}'s Heist failed.`,
+            type: "failure",
+            id: Date.now(),
+          });
+        }
+      } else if (cardId === "THIEF") {
+        const target = players.find((p) => p.id === targetPlayerId);
+        if (target.tableau.some((c) => c.cardId === "BODYGUARD")) {
+          reportGains.push({ desc: "Thief Blocked", amount: 0 });
+          logs.push({
+            text: `🛡️ ${target.name}'s Bodyguard stopped the Thief!`,
+            type: "warning",
+            id: Date.now(),
+          });
+        } else {
+          const amount = Math.min(target.gold, 2);
+          target.gold -= amount;
+          me.gold += amount;
+          netChange += amount;
+          reportGains.push({ desc: `Stole from ${target.name}`, amount });
+          logs.push({
+            text: `🦹 ${me.name} stole ${amount} Gold from ${target.name}.`,
+            type: "danger",
+            id: Date.now(),
+          });
+        }
+      } else if (cardId === "ASSASSIN") {
+        const target = players.find((p) => p.id === targetPlayerId);
+        if (target.tableau.some((c) => c.cardId === "BODYGUARD")) {
+          logs.push({
+            text: `🛡️ ${target.name}'s Bodyguard intercepted!`,
+            type: "warning",
+            id: Date.now(),
+          });
+        } else {
+          if (secondaryTarget !== null && target.tableau[secondaryTarget]) {
+            const killed = target.tableau[secondaryTarget];
+            target.tableau.splice(secondaryTarget, 1);
+            discardPile.push(killed.cardId);
+            logs.push({
+              text: `🗡️ ${me.name} assassinated ${target.name}'s ${
+                CARDS[killed.cardId].name
+              }!`,
+              type: "danger",
+              id: Date.now(),
+            });
+          }
+        }
+      } else if (cardId === "BLACKMAIL") {
+        const target = players.find((p) => p.id === targetPlayerId);
+        if (target.tableau.some((c) => c.cardId === "BODYGUARD")) {
+          logs.push({
+            text: `🛡️ ${target.name} blocked Blackmail.`,
+            type: "warning",
+            id: Date.now(),
+          });
+        } else {
+          if (secondaryTarget === "GOLD") {
+            const amount = Math.min(target.gold, 4);
+            target.gold -= amount;
+            me.gold += amount;
+            netChange += amount;
+            reportGains.push({ desc: `Blackmail Gold`, amount });
+            logs.push({
+              text: `🤐 ${me.name} blackmailed ${target.name} for ${amount} Gold.`,
+              type: "danger",
+              id: Date.now(),
+            });
+          } else {
+            const idx = parseInt(secondaryTarget);
+            if (!isNaN(idx) && target.tableau[idx]) {
+              const stolen = target.tableau[idx];
+              target.tableau.splice(idx, 1);
+              me.tableau.push(stolen);
+              logs.push({
+                text: `🤐 ${me.name} blackmailed ${target.name}'s ${
+                  CARDS[stolen.cardId].name
+                }.`,
+                type: "danger",
+                id: Date.now(),
+              });
+            }
+          }
+        }
+      } else if (cardId === "DOPPELGANGER") {
+        const prevAction = gameState.lastAction;
+        if (!prevAction || prevAction.cardId === "DOPPELGANGER") {
+          logs.push({
+            text: `🎭 ${me.name}'s Doppelganger fizzled.`,
+            type: "failure",
+            id: Date.now(),
+          });
+        } else {
+          logs.push({
+            text: `🎭 ${me.name} copies ${CARDS[prevAction.cardId].name}...`,
+            type: "neutral",
+            id: Date.now(),
+          });
+          const copyId = prevAction.cardId;
+          if (["URCHIN", "HEIST"].includes(copyId)) {
+            if (copyId === "URCHIN") {
+              me.gold += 2;
+              netChange += 2;
+              reportGains.push({ desc: "Copied Urchin", amount: 2 });
+            }
+            if (copyId === "HEIST") {
+              const roll = Math.floor(Math.random() * 6) + 1;
+              if (roll >= 4) {
+                me.gold += 5;
+                netChange += 5;
+                reportGains.push({ desc: "Copied Heist", amount: 5 });
+              }
+            }
+          } else {
+            me.gold += 3;
+            netChange += 3;
+            reportGains.push({ desc: "Copied Complex Action", amount: 3 });
+            logs.push({
+              text: `(Doppelganger mimics complex action as +3 Gold)`,
+              type: "neutral",
+              id: Date.now(),
+            });
+          }
+        }
+      }
+    }
+
+    const eveningReport = {
+      playerId: me.id,
+      actionName: card.name,
+      cost: card.cost,
+      tax: tax,
+      gains: reportGains,
+      netChange: netChange,
+      seen: false,
+    };
+
+    setSelectedCardIdx(null);
+    setTargetMode(null);
+    setSelectedTargetPlayerId(null);
+
+    await nextTurn(
+      players,
+      deck,
+      discardPile,
+      logs,
+      newLastAction,
+      eveningReport
+    );
+  };
+
+  const handleCardClick = (idx) => {
+    if (targetMode === "SCOUT") {
+      handleScout(idx);
+      return;
+    }
+
+    const cardId = gameState.players[gameState.turnIndex].hand[idx];
+    const card = CARDS[cardId];
+    const me = gameState.players[gameState.turnIndex];
+    const tax =
+      card.type === "ACTION" ? getTaxAmount(gameState.players, me.id) : 0;
+
+    if (me.gold < card.cost + tax) {
+      triggerFeedback(
+        "failure",
+        "Insufficient Funds",
+        `Cost: ${card.cost} + ${tax} Tax`,
+        Coins
+      );
+      return;
+    }
+
+    setSelectedCardIdx(idx);
+
+    if (cardId === "THIEF" || cardId === "ASSASSIN" || cardId === "BLACKMAIL") {
+      setTargetMode("PLAYER");
+    } else if (
+      cardId === "DOPPELGANGER" ||
+      card.type === "AGENT" ||
+      cardId === "URCHIN" ||
+      cardId === "HEIST"
+    ) {
+      initiatePlay(idx, null, null);
+    }
+  };
+
+  const handleTargetPlayerClick = (pid) => {
+    if (!targetMode) return;
+    const cardId = gameState.players[gameState.turnIndex].hand[selectedCardIdx];
+
+    if (cardId === "THIEF") {
+      initiatePlay(selectedCardIdx, pid, null);
+    } else if (cardId === "ASSASSIN") {
+      setSelectedTargetPlayerId(pid);
+      setTargetMode("CARD");
+    } else if (cardId === "BLACKMAIL") {
+      setSelectedTargetPlayerId(pid);
+      setTargetMode("OPTION");
+    }
+  };
+
+  const handleTargetCardClick = (targetCardIdx) => {
+    if (targetMode === "CARD" && selectedTargetPlayerId) {
+      initiatePlay(selectedCardIdx, selectedTargetPlayerId, targetCardIdx);
+    }
+  };
+
+  const handleOptionSelect = (option) => {
+    if (targetMode === "OPTION" && selectedTargetPlayerId) {
+      initiatePlay(selectedCardIdx, selectedTargetPlayerId, option);
+    }
+  };
+
+  const initiatePlay = async (handIdx, targetPid, secTarget) => {
+    const players = JSON.parse(JSON.stringify(gameState.players));
+    const deck = [...gameState.deck];
+    const discardPile = [...gameState.discardPile];
+    const logs = [];
+    const me = players.find((p) => p.id === user.uid);
+    const cardId = me.hand[handIdx];
+    const tax =
+      CARDS[cardId].type === "ACTION" ? getTaxAmount(players, me.id) : 0;
+
+    await executeCardEffect(
+      cardId,
+      targetPid,
+      secTarget,
+      players,
+      deck,
+      discardPile,
+      logs,
+      gameState.turnIndex,
+      tax
+    );
+  };
+
+  const startScoutMode = () => {
+    setTargetMode("SCOUT");
+    triggerFeedback("success", "Scout Mode", "Select a card to discard", Eye);
+  };
+
+  const handleScout = async (handIdx) => {
+    const players = JSON.parse(JSON.stringify(gameState.players));
+    const meIdx = gameState.turnIndex;
+    const me = players[meIdx];
+    const deck = [...gameState.deck];
+    const discardPile = [...gameState.discardPile];
+    const logs = [];
+
+    // Discard chosen card
+    const discarded = me.hand.splice(handIdx, 1)[0];
+    discardPile.push(discarded);
+
+    // Draw replacement
+    if (deck.length > 0) {
+      me.hand.push(deck.pop());
+    }
+
+    logs.push({
+      text: `zzz ${me.name} scouted (replaced a card).`,
+      type: "neutral",
+      id: Date.now(),
+    });
+
+    const eveningReport = {
+      playerId: me.id,
+      actionName: "Scout Mission",
+      cost: 0,
+      tax: 0,
+      gains: [{ desc: "Card Replaced", amount: 0 }],
+      netChange: 0,
+      seen: false,
+    };
+
+    setSelectedCardIdx(null);
+    setTargetMode(null);
+    await nextTurn(players, deck, discardPile, logs, null, eveningReport);
+  };
+
+  const handlePeek = () => {
+    if (gameState.deck.length === 0) return;
+    setPeekCard(gameState.deck[gameState.deck.length - 1]);
+    setTimeout(() => setPeekCard(null), 3000);
+  };
+
+  const closeTurnReport = async () => {
+    setMorningReportData(null); // Clear local
+    if (roomId && gameState) {
+      await updateDoc(
+        doc(db, "artifacts", APP_ID, "public", "data", "rooms", roomId),
+        {
+          "turnReport.seen": true,
+        }
+      );
+    }
+  };
+
+  const closeEveningReport = async () => {
+    setEveningReportData(null); // Clear local
+    if (roomId && gameState) {
+      await updateDoc(
+        doc(db, "artifacts", APP_ID, "public", "data", "rooms", roomId),
+        {
+          "eveningReport.seen": true,
+        }
+      );
+    }
+  };
+
+  if (isMaintenance) {
+    return (
+      <div className="min-h-screen bg-gray-950 flex flex-col items-center justify-center text-white p-4 text-center">
+        <div className="bg-orange-500/10 p-8 rounded-2xl border border-orange-500/30">
+          <Hammer
+            size={64}
+            className="text-orange-500 mx-auto mb-4 animate-bounce"
+          />
+          <h1 className="text-3xl font-bold mb-2">Under Maintenance</h1>
+          <p className="text-gray-400">
+            The Guild Hall is dark. The masters are deliberating.
+          </p>
+        </div>
+        {/* Add Spacing Between Boxes */}
+        <div className="h-8"></div>
+
+        {/* Clickable Second Card */}
+        <a href="https://rawfidkshuvo.github.io/gamehub/">
+          <div className="flex items-center justify-center gap-3 mb-2">
+            <div className="text-center pb-12 animate-pulse">
+              <div className="inline-flex items-center gap-3 px-8 py-4 bg-slate-900/50 rounded-full border border-indigo-500/20 text-indigo-300 font-bold tracking-widest text-sm uppercase backdrop-blur-sm">
+                <Sparkles size={16} /> Visit Gamehub...Try our other releases...{" "}
+                <Sparkles size={16} />
+              </div>
+            </div>
+          </div>
+        </a>
+      </div>
+    );
+  }
+
+  // --- RENDER HELPERS ---
+
+  if (!view)
+    return (
+      <div className="bg-black text-white h-screen flex items-center justify-center">
+        Loading Guild...
+      </div>
+    );
+
+  if (view === "menu") {
+    return (
+      <div
+        style={{ overscrollBehavior: "none" }}
+        className="min-h-screen bg-gray-950 text-white flex flex-col items-center justify-center p-4 relative overflow-hidden font-sans"
+      >
+        <FloatingBackground />
+
+        <div className="z-10 text-center mb-8 animate-in fade-in zoom-in duration-700">
+          <Ghost
+            size={64}
+            className="text-purple-500 mx-auto mb-4 animate-bounce drop-shadow-lg"
+          />
+          <h1 className="text-5xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-b from-purple-400 to-indigo-600 font-serif tracking-widest">
+            GUILD OF SHADOWS
+          </h1>
+          <p className="text-gray-400 tracking-[0.3em] uppercase mt-2 text-xs md:text-sm">
+            In Shadows We Trust
+          </p>
+        </div>
+
+        <div className="bg-gray-900/80 backdrop-blur border border-purple-500/30 p-6 rounded-2xl w-full max-w-sm shadow-2xl z-10">
+          {error && (
+            <div className="bg-red-900/50 text-red-200 p-2 mb-4 rounded text-center text-xs border border-red-800">
+              {error}
+            </div>
+          )}
+
+          <input
+            className="w-full bg-black/50 border border-gray-700 p-3 rounded mb-3 text-white placeholder-gray-500 focus:border-purple-500 outline-none transition-colors"
+            placeholder="CODENAME"
+            value={playerName}
+            onChange={(e) => setPlayerName(e.target.value)}
+          />
+
+          <button
+            onClick={createRoom}
+            className="w-full bg-gradient-to-r from-purple-700 to-indigo-600 hover:from-purple-600 p-3 rounded font-bold mb-3 flex items-center justify-center gap-2 shadow-lg"
+          >
+            <Crown size={18} /> Establish Guild
+          </button>
+
+          <div className="flex gap-2 mb-3">
+            <input
+              className="flex-1 bg-black/50 border border-gray-700 p-3 rounded text-white placeholder-gray-500 uppercase font-mono tracking-wider focus:border-purple-500 outline-none"
+              placeholder="CODE"
+              value={roomCode}
+              onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
+            />
+            <button
+              onClick={joinRoom}
+              className="bg-gray-800 hover:bg-gray-700 border border-gray-600 px-4 rounded font-bold"
+            >
+              Join
+            </button>
+          </div>
+
+          <button
+            onClick={() => setShowGuide(true)}
+            className="w-full text-xs text-gray-500 hover:text-white flex items-center justify-center gap-2 py-2"
+          >
+            <BookOpen size={14} /> Guild Archives
+          </button>
+        </div>
+        {showGuide && <GuideModal onClose={() => setShowGuide(false)} />}
+      </div>
+    );
+  }
+
+  if (view === "lobby" && gameState) {
+    const isHost = gameState.hostId === user.uid;
+    return (
+      <div
+        style={{ overscrollBehavior: "none" }}
+        className="min-h-screen bg-gray-950 text-white flex flex-col items-center justify-center p-4 relative"
+      >
+        <FloatingBackground />
+        <div className="z-10 w-full max-w-md bg-gray-900/90 backdrop-blur p-6 rounded-2xl border border-purple-900/50 shadow-2xl">
+          <div className="flex justify-between items-center mb-6 border-b border-gray-800 pb-4">
+            <h2 className="text-xl font-serif text-purple-400">
+              Room:{" "}
+              <span className="text-white font-mono">{gameState.roomId}</span>
+            </h2>
+            <button
+              onClick={handleLeaveRoom}
+              className="text-red-400 hover:text-red-300"
+            >
+              <LogOut size={20} />
+            </button>
+          </div>
+
+          <div className="space-y-2 mb-6">
+            <h3 className="text-xs uppercase text-gray-500 font-bold tracking-wider">
+              Operatives
+            </h3>
+            {gameState.players.map((p) => (
+              <div
+                key={p.id}
+                className="flex items-center justify-between bg-gray-800/50 p-3 rounded border border-gray-700/50 group"
+              >
+                <span className="font-bold flex items-center gap-2">
+                  <User size={14} /> {p.name}
+                  {p.id === gameState.hostId && (
+                    <Crown size={14} className="text-yellow-500" />
+                  )}
+                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-green-500 text-xs flex items-center gap-1">
+                    <CheckCircle size={12} /> Ready
+                  </span>
+                  {isHost && p.id !== user.uid && (
+                    <button
+                      onClick={() => kickPlayer(p.id)}
+                      className="text-gray-600 hover:text-red-500 transition-colors p-1"
+                      title="Kick Player"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {isHost ? (
+            <button
+              onClick={startGame}
+              disabled={gameState.players.length < 2}
+              className={`w-full py-3 rounded-xl font-bold text-lg shadow-lg flex items-center justify-center gap-2 ${
+                gameState.players.length < 2
+                  ? "bg-gray-800 text-gray-500 cursor-not-allowed"
+                  : "bg-green-700 hover:bg-green-600 text-white"
+              }`}
+            >
+              Start Game
+            </button>
+          ) : (
+            <div className="text-center text-purple-400/60 animate-pulse text-sm">
+              Waiting for Guild Master...
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // --- GAME VIEW ---
+  const meIdx = gameState.players.findIndex((p) => p.id === user.uid);
+  const me = gameState.players[meIdx];
+  const isMyTurn = gameState.turnIndex === meIdx;
+  const selectedCard =
+    selectedCardIdx !== null ? CARDS[me.hand[selectedCardIdx]] : null;
+  const taxAmount = getTaxAmount(gameState.players, me.id);
+  const winGoal = calculateWinGoal(gameState.players.length);
+
+  // Check if I have Lookout agent for UI button logic
+  const hasLookout = me.tableau.some((c) => c.cardId === "LOOKOUT");
+
+  return (
+    <div className="h-[100dvh] bg-gray-950 text-white overflow-hidden flex flex-col relative font-sans">
+      <FloatingBackground />
+
+      {/* --- NOTIFICATIONS --- */}
+      {feedback && <FeedbackOverlay {...feedback} />}
+      {morningReportData && (
+        <MorningReport report={morningReportData} onClose={closeTurnReport} />
+      )}
+      {eveningReportData && (
+        <EveningReport
+          report={eveningReportData}
+          onClose={closeEveningReport}
+        />
+      )}
+
+      {peekCard && (
+        <div
+          className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur"
+          onClick={() => setPeekCard(null)}
+        >
+          <div className="animate-in zoom-in duration-200 flex flex-col items-center">
+            <div className="text-white font-bold mb-4 text-xl">Top of Deck</div>
+            <CardDisplay cardId={peekCard} />
+            <div className="mt-4 text-gray-400 text-sm">(Tap to close)</div>
+          </div>
+        </div>
+      )}
+
+      {/* --- TOP BAR --- */}
+      <div className="h-12 bg-gray-900/90 border-b border-gray-800 flex items-center justify-between px-3 z-30 shrink-0">
+        <div className="flex items-center gap-2">
+          <span className="font-serif text-purple-500 font-bold hidden md:inline">
+            GUILD OF SHADOWS
+          </span>
+          <span className="bg-purple-900/40 text-purple-300 text-[10px] px-2 py-0.5 rounded border border-purple-800/50">
+            Goal: {winGoal} <Coins size={8} className="inline" />
+          </span>
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setShowLogs(!showLogs)}
+            className="p-1.5 text-gray-400 hover:bg-gray-800 rounded relative"
+          >
+            <History size={18} />
+            {gameState.logs.length > 0 && (
+              <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></span>
+            )}
+          </button>
+          <button
+            onClick={() => setShowGuide(true)}
+            className="p-1.5 text-gray-400 hover:bg-gray-800 rounded"
+          >
+            <BookOpen size={18} />
+          </button>
+          <button
+            onClick={() => setShowLeaveConfirm(true)}
+            className="p-1.5 text-red-400 hover:bg-red-900/30 rounded"
+          >
+            <LogOut size={18} />
+          </button>
+        </div>
+      </div>
+
+      {/* --- MAIN AREA --- */}
+      <div className="flex-1 relative overflow-hidden flex flex-col">
+        {/* OPPONENTS SCROLL VIEW */}
+        <div className="flex-1 overflow-y-auto p-2 pb-32">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+            {gameState.players.map((p, i) => {
+              if (p.id === user.uid) return null;
+              const isActive = gameState.turnIndex === i;
+              const isTargetable = targetMode === "PLAYER";
+              const isSelected = selectedTargetPlayerId === p.id;
+
+              return (
+                <div
+                  key={p.id}
+                  onClick={() =>
+                    isTargetable ? handleTargetPlayerClick(p.id) : null
+                  }
+                  className={`
+                        relative bg-gray-900/60 p-2 rounded-lg border transition-all
+                        ${
+                          isActive
+                            ? "border-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.3)]"
+                            : "border-gray-800"
+                        }
+                        ${
+                          isTargetable
+                            ? "cursor-pointer hover:border-red-400 hover:bg-red-900/10 ring-2 ring-transparent hover:ring-red-500/50"
+                            : ""
+                        }
+                        ${isSelected ? "ring-2 ring-red-500 bg-red-900/20" : ""}
+                      `}
+                >
+                  <div className="flex justify-between items-start mb-2">
+                    <div className="flex flex-col">
+                      <span className="text-xs font-bold text-gray-300 flex items-center gap-1">
+                        {p.name}
+                      </span>
+                      <span className="text-[10px] text-yellow-500 flex items-center gap-1 font-mono bg-black/30 px-1 rounded w-fit mt-0.5">
+                        {p.gold} <Coins size={8} />
+                      </span>
+                    </div>
+                    <div className="flex gap-0.5">
+                      {p.hand.map((_, h) => (
+                        <div
+                          key={h}
+                          className="w-2 h-3 bg-purple-900 rounded-[1px] border border-purple-700/50"
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Tableau */}
+                  <div className="flex flex-wrap gap-1">
+                    {p.tableau.map((c, idx) => (
+                      <div
+                        key={idx}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleTargetCardClick(idx);
+                        }}
+                        className={`${
+                          targetMode === "CARD" && isSelected
+                            ? "animate-pulse cursor-pointer ring-1 ring-red-400"
+                            : ""
+                        }`}
+                      >
+                        <CardDisplay
+                          cardId={c.cardId}
+                          turnsLeft={c.turnsLeft}
+                          tiny
+                        />
+                      </div>
+                    ))}
+                    {p.tableau.length === 0 && (
+                      <div className="h-8 w-full flex items-center justify-center text-[9px] text-gray-700 italic">
+                        Empty Hall
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Logs Preview - Limit to last 3 */}
+          <div className="mt-4 flex flex-col items-center space-y-1 opacity-70 pointer-events-none">
+            {gameState.logs
+              .slice(-3)
+              .reverse()
+              .map((l) => (
+                <div
+                  key={l.id}
+                  className={`text-[10px] px-2 py-0.5 rounded-full backdrop-blur-sm ${
+                    l.type === "danger"
+                      ? "bg-red-900/50 text-red-200"
+                      : "bg-gray-800/50 text-gray-300"
+                  }`}
+                >
+                  {l.text}
+                </div>
+              ))}
+          </div>
+        </div>
+
+        {/* --- BOTTOM PLAYER AREA (Sticky) --- */}
+        <div className="bg-gray-900 border-t border-purple-900/30 p-2 pb-safe z-40 shadow-[0_-5px_20px_rgba(0,0,0,0.5)]">
+          {/* Info Bar */}
+          <div className="flex justify-between items-center mb-2 px-1">
+            <div className="flex items-center gap-2">
+              <div className="text-yellow-400 font-black text-xl flex items-center gap-1.5 drop-shadow-sm">
+                <Coins className="fill-yellow-400/20" size={20} /> {me.gold}
+              </div>
+              {taxAmount > 0 && (
+                <div className="text-[10px] text-red-400 flex items-center gap-0.5 bg-red-900/20 px-1.5 py-0.5 rounded border border-red-900/50">
+                  Taxed: +{taxAmount} <Coins size={8} />
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-1 overflow-x-auto max-w-[50%] no-scrollbar items-center">
+              {me.tableau.map((c, i) => (
+                <div key={i} className="shrink-0">
+                  <CardDisplay cardId={c.cardId} turnsLeft={c.turnsLeft} tiny />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Hand */}
+          <div className="flex gap-2 overflow-x-auto pb-2 px-1 min-h-[140px] items-end no-scrollbar">
+            {me.hand.length === 0 && (
+              <div className="text-gray-600 text-xs italic w-full text-center py-4">
+                Hand Empty
+              </div>
+            )}
+            {me.hand.map((c, i) => (
+              <div
+                key={i}
+                className={`transition-transform duration-200 ${
+                  selectedCardIdx === i ? "-translate-y-4" : ""
+                }`}
+              >
+                <CardDisplay
+                  cardId={c}
+                  small
+                  onClick={() => (isMyTurn ? handleCardClick(i) : null)}
+                  disabled={
+                    !isMyTurn ||
+                    (targetMode !== null &&
+                      targetMode !== "SCOUT" &&
+                      selectedCardIdx !== i)
+                  }
+                  highlight={selectedCardIdx === i}
+                />
+              </div>
+            ))}
+          </div>
+
+          {/* Controls */}
+          {isMyTurn && (
+            <div className="absolute bottom-32 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 w-full px-4 pointer-events-none">
+              {/* SCOUT MODE OVERLAY */}
+              {targetMode === "SCOUT" && (
+                <div className="pointer-events-auto bg-black/90 backdrop-blur text-white px-6 py-4 rounded-xl border border-blue-500 shadow-2xl animate-in zoom-in flex flex-col items-center gap-2">
+                  <h3 className="font-bold text-lg flex items-center gap-2 text-blue-400">
+                    <Eye size={20} /> Scout Mode
+                  </h3>
+                  <p className="text-xs text-gray-400 text-center">
+                    Tap a card in your hand to discard it and draw a new one.
+                  </p>
+                  <button
+                    onClick={() => setTargetMode(null)}
+                    className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-1 rounded-full text-xs mt-2"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              )}
+
+              {targetMode === "PLAYER" && (
+                <div className="pointer-events-auto bg-black/80 backdrop-blur text-white px-4 py-2 rounded-full border border-red-500 shadow-lg animate-bounce text-sm font-bold flex items-center gap-2">
+                  <AlertTriangle size={16} className="text-red-500" /> Tap a
+                  Player to Target
+                  <button
+                    onClick={() => {
+                      setTargetMode(null);
+                      setSelectedCardIdx(null);
+                    }}
+                    className="bg-gray-700 rounded-full p-1 ml-2"
+                  >
+                    <X size={12} />
+                  </button>
+                </div>
+              )}
+              {targetMode === "CARD" && (
+                <div className="pointer-events-auto bg-black/80 backdrop-blur text-white px-4 py-2 rounded-full border border-red-500 shadow-lg text-sm font-bold">
+                  Select an Agent to Destroy
+                  <button
+                    onClick={() => {
+                      setTargetMode("PLAYER");
+                      setSelectedTargetPlayerId(null);
+                    }}
+                    className="text-[10px] underline ml-2 text-gray-400"
+                  >
+                    Back
+                  </button>
+                </div>
+              )}
+              {targetMode === "OPTION" && (
+                <div className="pointer-events-auto flex gap-2 animate-in slide-in-from-bottom-5">
+                  <button
+                    onClick={() => handleOptionSelect("GOLD")}
+                    className="bg-yellow-700 hover:bg-yellow-600 text-white px-4 py-3 rounded-xl font-bold shadow-lg flex flex-col items-center leading-tight border border-yellow-500"
+                  >
+                    <span className="text-xs font-normal">Steal</span>
+                    <span>4 Gold</span>
+                  </button>
+                  <button
+                    onClick={() => setTargetMode("CARD")}
+                    className="bg-blue-700 hover:bg-blue-600 text-white px-4 py-3 rounded-xl font-bold shadow-lg flex flex-col items-center leading-tight border border-blue-500"
+                  >
+                    <span className="text-xs font-normal">Steal</span>
+                    <span>Agent</span>
+                  </button>
+                </div>
+              )}
+
+              {!targetMode && selectedCardIdx === null && (
+                <div className="flex gap-2 pointer-events-auto">
+                  {hasLookout && (
+                    <button
+                      onClick={handlePeek}
+                      className="bg-indigo-900 hover:bg-indigo-800 text-indigo-200 border border-indigo-500/50 px-4 py-2 rounded-full font-bold shadow-lg flex items-center gap-2 text-sm"
+                    >
+                      <Search size={14} /> Peek
+                    </button>
+                  )}
+                  <button
+                    onClick={startScoutMode}
+                    className="bg-gray-800/90 backdrop-blur hover:bg-gray-700 text-gray-300 border border-gray-600 px-6 py-2 rounded-full font-bold shadow-lg flex items-center gap-2 text-sm"
+                  >
+                    Pass & Scout <ArrowRightLeft size={14} />
+                  </button>
+                </div>
+              )}
+
+              {selectedCardIdx !== null && !targetMode && (
+                <button
+                  onClick={() => setSelectedCardIdx(null)}
+                  className="pointer-events-auto bg-black/60 text-white px-4 py-1 rounded-full text-xs mb-2"
+                >
+                  Cancel
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* --- MODALS --- */}
+      {showLogs && (
+        <div className="fixed inset-0 bg-black/90 z-[100] p-6 flex flex-col">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-xl font-bold text-white">Shadow Log</h3>
+            <button onClick={() => setShowLogs(false)}>
+              <X />
+            </button>
+          </div>
+          <div className="flex-1 overflow-y-auto space-y-2">
+            {[...gameState.logs].reverse().map((l) => (
+              <div
+                key={l.id}
+                className={`p-3 rounded border-l-4 text-sm ${
+                  l.type === "danger"
+                    ? "bg-red-900/20 border-red-500"
+                    : l.type === "success"
+                    ? "bg-green-900/20 border-green-500"
+                    : "bg-gray-800 border-gray-600"
+                }`}
+              >
+                <span className="opacity-70 text-[10px] block mb-1">
+                  {new Date(l.id).toLocaleTimeString()}
+                </span>
+                {l.text}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {showLeaveConfirm && (
+        <div className="fixed inset-0 z-[200] bg-black/90 flex items-center justify-center p-4">
+          <div className="bg-gray-800 p-6 rounded-2xl w-full max-w-sm text-center">
+            <h3 className="text-lg font-bold mb-4">Abandon the Guild?</h3>
+            <div className="flex flex-col gap-2">
+              <button
+                onClick={() => setShowLeaveConfirm(false)}
+                className="bg-gray-700 py-3 rounded font-bold"
+              >
+                Cancel
+              </button>
+              {gameState.hostId === user.uid && (
+                <button
+                  onClick={returnToLobby}
+                  className="bg-purple-700 py-3 rounded font-bold"
+                >
+                  Return to Lobby
+                </button>
+              )}
+              <button
+                onClick={handleLeaveRoom}
+                className="bg-red-600 py-3 rounded font-bold"
+              >
+                {gameState.hostId === user.uid
+                  ? "Leave (Delete Room)"
+                  : "Leave Game"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {gameState.status === "finished" && (
+        <div className="absolute inset-0 z-[150] bg-black/90 flex flex-col items-center justify-center p-6 text-center animate-in fade-in">
+          <Trophy size={80} className="text-yellow-400 mb-6 animate-bounce" />
+          <h2 className="text-4xl font-black text-white mb-2">GAME OVER</h2>
+          <p className="text-2xl text-purple-400 font-serif mb-8">
+            {gameState.players.find((p) => p.id === gameState.winnerId)?.name}{" "}
+            is the new Guild Master!
+          </p>
+
+          <div className="bg-gray-800/50 p-4 rounded-xl mb-6 w-full max-w-sm">
+            <h4 className="text-sm font-bold text-gray-400 mb-2 uppercase tracking-widest">
+              Rematch Status
+            </h4>
+            <div className="space-y-2">
+              {gameState.players.map((p) => (
+                <div key={p.id} className="flex justify-between text-sm">
+                  <span>{p.name}</span>
+                  <span
+                    className={
+                      p.ready ? "text-green-400 font-bold" : "text-gray-500"
+                    }
+                  >
+                    {p.ready ? "READY" : "WAITING"}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-3 w-full max-w-xs">
+            {!me.ready ? (
+              <button
+                onClick={toggleReady}
+                className="bg-green-600 hover:bg-green-500 text-white py-3 rounded-lg font-bold"
+              >
+                Ready for Rematch
+              </button>
+            ) : (
+              <div className="text-green-500 font-bold mb-2">
+                You are ready!
+              </div>
+            )}
+
+            {gameState.hostId === user.uid && (
+              <button
+                onClick={returnToLobby}
+                disabled={!gameState.players.every((p) => p.ready)}
+                className={`py-3 rounded-lg font-bold transition-all ${
+                  gameState.players.every((p) => p.ready)
+                    ? "bg-white text-black hover:scale-105"
+                    : "bg-gray-700 text-gray-500 cursor-not-allowed"
+                }`}
+              >
+                Return to Lobby
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {showGuide && <GuideModal onClose={() => setShowGuide(false)} />}
+    </div>
+  );
+}
+//maintenance and refresh or back fixed complete
