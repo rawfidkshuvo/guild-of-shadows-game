@@ -235,6 +235,15 @@ const shuffle = (array) => {
   return array;
 };
 
+const Logo = () => (
+  <div className="flex items-center justify-center gap-1 opacity-40 mt-auto pb-2 pt-2 relative z-10">
+    <Ghost size={12} className="text-purple-500" />
+    <span className="text-[10px] font-black tracking-widest text-purple-500 uppercase">
+      GUILD OF SHADOWS
+    </span>
+  </div>
+);
+
 const calculateWinGoal = (playerCount) => {
   if (playerCount <= 2) return 20;
   if (playerCount === 3) return 18;
@@ -1656,6 +1665,7 @@ export default function GuildOfShadows() {
             </div>
           )}
         </div>
+        <Logo />
       </div>
     );
   }
@@ -2117,7 +2127,7 @@ export default function GuildOfShadows() {
           </div>
         </div>
       )}
-
+      <Logo />
       {showGuide && <GuideModal onClose={() => setShowGuide(false)} />}
     </div>
   );
