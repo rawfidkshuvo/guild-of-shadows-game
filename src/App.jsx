@@ -55,6 +55,7 @@ import {
   Hammer,
   Sparkles,
   Loader2,
+  ChevronRight,
 } from "lucide-react";
 
 // ---------------------------------------------------------------------------
@@ -309,12 +310,12 @@ const CardDisplay = ({
   if (tiny) {
     return (
       <div
-        className={`relative w-5 h-7 md:w-6 md:h-8 rounded flex items-center justify-center ${card.bg} border ${card.border} shadow-sm`}
+        className={`relative w-6 h-8 rounded flex items-center justify-center ${card.bg} border ${card.border} shadow-sm`}
         title={card.name}
       >
-        <card.icon className={`${card.color} w-3 h-3`} />
+        <card.icon className={`${card.color} w-3.5 h-3.5`} />
         {turnsLeft !== undefined && (
-          <div className="absolute -top-1 -right-1 bg-black text-[8px] text-white w-3 h-3 rounded-full flex items-center justify-center border border-gray-500">
+          <div className="absolute -top-1.5 -right-1.5 bg-black text-[9px] text-white w-4 h-4 rounded-full flex items-center justify-center border border-gray-500 z-10">
             {turnsLeft}
           </div>
         )}
@@ -322,17 +323,21 @@ const CardDisplay = ({
     );
   }
 
+  // --- MOBILE OPTIMIZED SIZES ---
   const sizeClasses = small
-    ? "w-16 h-28 md:w-20 md:h-32 p-1.5"
-    : "w-24 h-36 md:w-32 md:h-48 p-2 md:p-3";
-  const iconSize = small ? 18 : 32;
+    ? "w-20 h-28 p-1.5"
+    : "w-24 h-40 md:w-32 md:h-48 p-2";
+
+  const iconSize = small ? 20 : 28;
+  const textSize = small ? "text-[8px]" : "text-[9px] md:text-[10px]";
+  const titleSize = small ? "text-[10px]" : "text-[11px] md:text-xs";
 
   return (
     <button
       onClick={onClick}
       disabled={disabled}
       className={`
-        relative rounded-xl border-2 shadow-lg transition-all flex flex-col items-center justify-between cursor-pointer active:scale-95 touch-manipulation overflow-visible
+        relative rounded-xl border-2 shadow-lg transition-all flex flex-col items-center justify-between cursor-pointer active:scale-95 touch-manipulation overflow-visible shrink-0
         ${sizeClasses} ${card.bg} ${
         highlight ? "ring-4 ring-yellow-400 z-10 scale-105" : card.border
       }
@@ -343,19 +348,23 @@ const CardDisplay = ({
         }
       `}
     >
-      <div className="w-full flex justify-between items-center text-[8px] md:text-[10px] font-bold text-gray-300">
+      {/* HEADER: Type & Cost */}
+      <div className="w-full flex justify-between items-center font-bold text-gray-300">
         <span
-          className={card.type === "AGENT" ? "text-blue-300" : "text-amber-200"}
+          className={`${small ? "text-[8px]" : "text-[10px]"} ${
+            card.type === "AGENT" ? "text-blue-300" : "text-amber-200"
+          }`}
         >
           {card.type === "AGENT" ? "AGT" : "ACT"}
         </span>
         {showCost && card.cost > 0 && (
-          <span className="bg-black/50 px-1 rounded text-yellow-400 flex items-center gap-0.5">
+          <span className="bg-black/50 px-1.5 rounded text-yellow-400 flex items-center gap-0.5 text-[10px]">
             {card.cost} <Coins size={8} />
           </span>
         )}
       </div>
 
+      {/* ICON */}
       <div className="flex-1 flex items-center justify-center my-1 relative">
         <card.icon className={`${card.color}`} size={iconSize} />
         {turnsLeft !== undefined && (
@@ -368,16 +377,17 @@ const CardDisplay = ({
         )}
       </div>
 
+      {/* FOOTER: Name & Desc */}
       <div className="w-full text-center">
-        <div className="font-bold text-white text-[9px] md:text-xs leading-tight mb-1 line-clamp-1">
+        <div
+          className={`font-bold text-white leading-tight mb-1 line-clamp-1 ${titleSize}`}
+        >
           {card.name}
         </div>
         <div
           className={`
-            text-gray-400 leading-tight bg-black/40 rounded flex items-center justify-center px-1
-            ${
-              small ? "text-[8px] h-8 overflow-hidden" : "text-[9px] h-auto p-1"
-            }
+            text-gray-400 leading-tight bg-black/40 rounded flex items-center justify-center px-1 w-full
+            ${textSize} h-auto p-1 whitespace-normal text-center
           `}
         >
           {card.desc}
@@ -518,160 +528,66 @@ const GuideModal = ({ onClose }) => (
   </div>
 );
 
-const ReportPopup = ({
-  title,
-  children,
-  onClose,
-  icon: Icon,
-  colorClass,
-  borderColor,
-}) => (
-  <div
-    className={`fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[150] w-72 md:w-80 animate-in zoom-in-95 fade-in duration-300`}
-  >
-    <div
-      className={`bg-gray-900/95 backdrop-blur-xl border-2 ${borderColor} rounded-xl shadow-[0_0_50px_rgba(0,0,0,0.7)] overflow-hidden flex flex-col`}
-    >
-      <div
-        className={`p-3 border-b ${borderColor} bg-black/40 flex justify-between items-center`}
-      >
-        <div className={`font-bold flex items-center gap-2 ${colorClass}`}>
-          <Icon size={18} /> {title}
-        </div>
-        <button
-          onClick={onClose}
-          className="hover:bg-white/10 rounded p-1 transition-colors text-gray-400 hover:text-white"
-        >
-          <X size={16} />
-        </button>
-      </div>
-      <div className="p-4 text-sm text-gray-200 max-h-[60vh] overflow-y-auto">
-        {children}
-      </div>
-      <div className="p-2 bg-black/20 border-t border-gray-800 flex justify-center">
-        <button
-          onClick={onClose}
-          className="text-xs uppercase tracking-widest text-gray-500 hover:text-white transition-colors py-1"
-        >
-          Dismiss
-        </button>
-      </div>
-    </div>
-  </div>
-);
+// --- INLINE REPORT COMPONENTS ---
 
-const MorningReport = ({ report, onClose }) => {
+const MorningReportInline = ({ report }) => {
   if (!report) return null;
   return (
-    <ReportPopup
-      title="Morning Report"
-      icon={Sunrise}
-      colorClass="text-purple-300"
-      borderColor="border-purple-500/50"
-      onClose={onClose}
-    >
-      <div className="space-y-3">
-        <div className="bg-black/40 p-2 rounded border border-gray-700">
-          <div className="text-[10px] text-gray-400 uppercase font-bold mb-1">
-            Income
-          </div>
-          {report.breakdown && report.breakdown.length > 0 ? (
-            <div className="space-y-1">
-              {report.breakdown.map((item, i) => (
-                <div key={i} className="flex justify-between text-xs">
-                  <span className="text-gray-300">{item.source}</span>
-                  <span className="text-green-400 font-mono">
-                    +{item.amount}
-                  </span>
-                </div>
-              ))}
-              <div className="border-t border-gray-600 mt-1 pt-1 flex justify-between font-bold">
-                <span>Total</span>
-                <span className="text-green-400">+{report.income}</span>
-              </div>
-            </div>
-          ) : (
-            <div className="text-xs text-gray-500 italic">
-              No income generated.
-            </div>
-          )}
+    <div className="w-full bg-green-950/40 border-b border-green-500/30 p-2 flex items-center justify-between animate-in slide-in-from-top-2 duration-300">
+      <div className="flex flex-col gap-0.5 w-full">
+        <div className="flex flex-wrap gap-2 text-[10px] text-gray-300">
+          {report.breakdown.map((item, i) => (
+            <span key={i} className="flex gap-1 items-center">
+              <span className="text-gray-400">{item.source}:</span>
+              <span className="text-green-300">+{item.amount}</span>
+            </span>
+          ))}
         </div>
-
         {report.expired.length > 0 && (
-          <div className="bg-red-900/20 p-2 rounded border border-red-900/40">
-            <div className="text-[10px] text-red-300 uppercase font-bold mb-1 flex items-center gap-1">
-              <LogOut size={10} /> Departed Agents
-            </div>
-            <div className="flex flex-wrap gap-1">
-              {report.expired.map((cId, i) => (
-                <span
-                  key={i}
-                  className="text-[10px] text-gray-300 bg-black/40 px-1.5 py-0.5 rounded border border-gray-700"
-                >
-                  {CARDS[cId]?.name}
-                </span>
-              ))}
-            </div>
+          <div className="text-[9px] text-red-300 mt-0.5 flex gap-1 items-center">
+            <LogOut size={8} /> Lost:{" "}
+            {report.expired.map((c) => CARDS[c]?.name).join(", ")}
           </div>
         )}
       </div>
-    </ReportPopup>
+      <div className="pl-3 border-l border-green-500/20 flex flex-col items-center justify-center text-green-400 shrink-0">
+        <span className="text-sm font-black">+{report.income}</span>
+      </div>
+    </div>
   );
 };
 
-const EveningReport = ({ report, onClose }) => {
+const EveningReportInline = ({ report }) => {
   if (!report) return null;
   return (
-    <ReportPopup
-      title="Evening Report"
-      icon={Moon}
-      colorClass="text-indigo-300"
-      borderColor="border-indigo-500/50"
-      onClose={onClose}
-    >
-      <div className="space-y-3">
-        <div className="text-center">
-          <div className="text-xs text-gray-400 uppercase">Action</div>
-          <div className="font-bold text-white text-lg">
-            {report.actionName}
-          </div>
+    <div className="w-full bg-indigo-950/40 border-b border-indigo-500/30 p-2 flex items-center justify-between animate-in slide-in-from-top-2 duration-300">
+      <div className="flex flex-col gap-0.5 w-full">
+        <div className="text-[10px] text-indigo-300 font-bold uppercase">
+          {report.actionName}
         </div>
-
-        <div className="bg-black/40 p-2 rounded border border-gray-700 space-y-1">
-          <div className="flex justify-between text-xs">
-            <span className="text-gray-400">Cost</span>
-            <span className="text-red-400 font-mono">-{report.cost}</span>
-          </div>
+        <div className="flex flex-wrap gap-2 text-[9px] text-gray-400">
+          <span>Cost: {report.cost}</span>
           {report.tax > 0 && (
-            <div className="flex justify-between text-xs">
-              <span className="text-red-400">Saboteur Tax</span>
-              <span className="text-red-400 font-mono">-{report.tax}</span>
-            </div>
+            <span className="text-red-400">Tax: {report.tax}</span>
           )}
           {report.gains.map((g, i) => (
-            <div
-              key={i}
-              className="flex justify-between text-xs border-t border-gray-800 pt-1 mt-1"
-            >
-              <span className="text-gray-300">{g.desc}</span>
-              <span className="text-green-400 font-mono">+{g.amount}</span>
-            </div>
-          ))}
-
-          <div className="border-t border-gray-600 mt-1 pt-1 flex justify-between font-bold">
-            <span>Net Change</span>
-            <span
-              className={
-                report.netChange >= 0 ? "text-green-400" : "text-red-400"
-              }
-            >
-              {report.netChange > 0 ? "+" : ""}
-              {report.netChange}
+            <span key={i} className="text-green-300">
+              {g.desc}: +{g.amount}
             </span>
-          </div>
+          ))}
         </div>
       </div>
-    </ReportPopup>
+      <div className="pl-3 border-l border-indigo-500/20 flex flex-col items-center justify-center shrink-0">
+        <span
+          className={`text-sm font-black ${
+            report.netChange >= 0 ? "text-green-400" : "text-red-400"
+          }`}
+        >
+          {report.netChange > 0 ? "+" : ""}
+          {report.netChange}
+        </span>
+      </div>
+    </div>
   );
 };
 
@@ -688,7 +604,6 @@ export default function GuildOfShadows() {
   const [gameState, setGameState] = useState(null);
   const [error, setError] = useState("");
 
-  // FIX: Added missing loading state
   const [loading, setLoading] = useState(false);
 
   // PERSISTENCE FIX: Load room ID from local storage
@@ -706,6 +621,9 @@ export default function GuildOfShadows() {
   const [targetMode, setTargetMode] = useState(null); // PLAYER, CARD, OPTION, SCOUT, DISCARD
   const [selectedTargetPlayerId, setSelectedTargetPlayerId] = useState(null);
   const [peekCard, setPeekCard] = useState(null);
+
+  // New state for Doppelganger confirmation
+  const [doppelgangerConfirm, setDoppelgangerConfirm] = useState(null);
 
   // Local Report States (To prevent showing other people's reports if game state updates)
   const [morningReportData, setMorningReportData] = useState(null);
@@ -800,7 +718,6 @@ export default function GuildOfShadows() {
   const createRoom = async () => {
     if (!playerName) return setError("Enter Alias");
 
-    // FIX: Set loading state
     setLoading(true);
 
     try {
@@ -843,7 +760,6 @@ export default function GuildOfShadows() {
   const joinRoom = async () => {
     if (!roomCode || !playerName) return setError("Enter Info");
 
-    // FIX: Set loading state
     setLoading(true);
 
     try {
@@ -1330,6 +1246,26 @@ export default function GuildOfShadows() {
       }
     }
 
+    // --- IMMEDIATE WIN CHECK ---
+    const goal = calculateWinGoal(players.length);
+    if (me.gold >= goal) {
+      const finalPlayers = players.map((p) => ({ ...p, ready: false }));
+      await updateDoc(
+        doc(db, "artifacts", APP_ID, "public", "data", "rooms", roomId),
+        {
+          players: finalPlayers,
+          status: "finished",
+          winnerId: me.id,
+          logs: arrayUnion({
+            text: `🏆 ${me.name} has bought the Guild!`,
+            type: "success",
+            id: Date.now() + 2,
+          }),
+        }
+      );
+      return; // Do NOT call nextTurn
+    }
+
     const eveningReport = {
       playerId: me.id,
       actionName: card.name,
@@ -1343,6 +1279,7 @@ export default function GuildOfShadows() {
     setSelectedCardIdx(null);
     setTargetMode(null);
     setSelectedTargetPlayerId(null);
+    setDoppelgangerConfirm(null);
 
     await nextTurn(
       players,
@@ -1414,12 +1351,22 @@ export default function GuildOfShadows() {
       return;
     }
 
+    // Logic for Doppelganger Confirmation
+    if (cardId === "DOPPELGANGER") {
+      const lastAction = gameState.lastAction;
+      let targetCard = null;
+      if (lastAction && lastAction.cardId !== "DOPPELGANGER") {
+        targetCard = CARDS[lastAction.cardId];
+      }
+      setDoppelgangerConfirm({ handIdx: idx, targetCard });
+      return;
+    }
+
     setSelectedCardIdx(idx);
 
     if (cardId === "THIEF" || cardId === "ASSASSIN" || cardId === "BLACKMAIL") {
       setTargetMode("PLAYER");
     } else if (
-      cardId === "DOPPELGANGER" ||
       card.type === "AGENT" ||
       cardId === "URCHIN" ||
       cardId === "HEIST"
@@ -1527,28 +1474,11 @@ export default function GuildOfShadows() {
     setTimeout(() => setPeekCard(null), 3000);
   };
 
-  const closeTurnReport = async () => {
-    setMorningReportData(null); // Clear local
-    if (roomId && gameState) {
-      await updateDoc(
-        doc(db, "artifacts", APP_ID, "public", "data", "rooms", roomId),
-        {
-          "turnReport.seen": true,
-        }
-      );
-    }
-  };
-
-  const closeEveningReport = async () => {
-    setEveningReportData(null); // Clear local
-    if (roomId && gameState) {
-      await updateDoc(
-        doc(db, "artifacts", APP_ID, "public", "data", "rooms", roomId),
-        {
-          "eveningReport.seen": true,
-        }
-      );
-    }
+  const getDoppelEffectText = (cardId) => {
+    if (cardId === "URCHIN") return "Effect: Gain +2 Gold";
+    if (cardId === "HEIST") return "Effect: 50% chance to gain +5 Gold";
+    // All other cards result in simple mimic gold gain in this version
+    return "Effect: Gain +3 Gold (Mimic Bonus)";
   };
 
   if (isMaintenance) {
@@ -1794,47 +1724,86 @@ export default function GuildOfShadows() {
         </div>
       )}
 
-      {/* Only show Morning Report if no Peek card. Only show Evening if no Morning. */}
-      {!peekCard && morningReportData ? (
-        <MorningReport report={morningReportData} onClose={closeTurnReport} />
-      ) : !peekCard && eveningReportData ? (
-        <EveningReport
-          report={eveningReportData}
-          onClose={closeEveningReport}
-        />
-      ) : null}
+      {/* DOPPELGANGER CONFIRMATION MODAL */}
+      {doppelgangerConfirm && (
+        <div className="fixed inset-0 z-[190] bg-black/90 flex items-center justify-center p-4">
+          <div className="bg-gray-800 border-2 border-cyan-500 rounded-2xl w-full max-w-sm flex flex-col items-center p-6 shadow-[0_0_30px_rgba(34,211,238,0.2)] animate-in zoom-in-95">
+            <Copy size={48} className="text-cyan-400 mb-4" />
+            <h3 className="text-2xl font-bold text-white mb-2">Doppelganger</h3>
+
+            <div className="text-center mb-6 w-full">
+              <p className="text-gray-400 text-sm mb-2">
+                Copying previous action:
+              </p>
+              {doppelgangerConfirm.targetCard ? (
+                <div className="bg-black/40 p-4 rounded-lg border border-gray-700 flex flex-col items-center w-full">
+                  <span
+                    className={`font-bold ${doppelgangerConfirm.targetCard.color} text-lg`}
+                  >
+                    {doppelgangerConfirm.targetCard.name}
+                  </span>
+                  <div className="mt-3 bg-cyan-900/30 text-cyan-200 px-3 py-2 rounded text-sm font-bold border border-cyan-500/30 w-full text-center">
+                    {getDoppelEffectText(doppelgangerConfirm.targetCard.id)}
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-red-900/20 border border-red-500/50 p-3 rounded text-red-200 text-sm italic">
+                  No valid action to copy (Effect will fizzle).
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-3 w-full">
+              <button
+                onClick={() => setDoppelgangerConfirm(null)}
+                className="flex-1 bg-gray-700 hover:bg-gray-600 py-3 rounded-xl font-bold transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() =>
+                  initiatePlay(doppelgangerConfirm.handIdx, null, null)
+                }
+                className="flex-1 bg-cyan-600 hover:bg-cyan-500 py-3 rounded-xl font-bold text-white shadow-lg transition-transform active:scale-95"
+              >
+                Proceed
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* --- TOP BAR --- */}
-      <div className="h-12 bg-gray-900/90 border-b border-gray-800 flex items-center justify-between px-3 z-30 shrink-0">
+      <div className="h-14 bg-gray-900/90 border-b border-gray-800 flex items-center justify-between px-4 z-30 shrink-0 shadow-md">
         <div className="flex items-center gap-2">
-          <span className="font-serif text-purple-500 font-bold hidden md:inline">
+          <span className="font-serif text-purple-500 font-bold hidden md:inline text-lg">
             GUILD OF SHADOWS
           </span>
-          <span className="bg-purple-900/40 text-purple-300 text-[10px] px-2 py-0.5 rounded border border-purple-800/50">
-            Goal: {winGoal} <Coins size={8} className="inline" />
+          <span className="bg-purple-900/40 text-purple-300 text-xs px-3 py-1 rounded-full border border-purple-800/50 font-mono tracking-wider shadow-[0_0_10px_rgba(168,85,247,0.2)]">
+            Goal: {winGoal} <Coins size={10} className="inline ml-0.5" />
           </span>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-3">
           <button
             onClick={() => setShowLogs(!showLogs)}
-            className="p-1.5 text-gray-400 hover:bg-gray-800 rounded relative"
+            className="p-2 text-gray-400 hover:bg-gray-800 rounded-full relative transition-colors"
           >
-            <History size={18} />
+            <History size={20} />
             {gameState.logs.length > 0 && (
-              <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></span>
+              <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-gray-900"></span>
             )}
           </button>
           <button
             onClick={() => setShowGuide(true)}
-            className="p-1.5 text-gray-400 hover:bg-gray-800 rounded"
+            className="p-2 text-gray-400 hover:bg-gray-800 rounded-full transition-colors"
           >
-            <BookOpen size={18} />
+            <BookOpen size={20} />
           </button>
           <button
             onClick={() => setShowLeaveConfirm(true)}
-            className="p-1.5 text-red-400 hover:bg-red-900/30 rounded"
+            className="p-2 text-red-400 hover:bg-red-900/20 rounded-full transition-colors"
           >
-            <LogOut size={18} />
+            <LogOut size={20} />
           </button>
         </div>
       </div>
@@ -1842,8 +1811,8 @@ export default function GuildOfShadows() {
       {/* --- MAIN AREA --- */}
       <div className="flex-1 relative overflow-hidden flex flex-col">
         {/* OPPONENTS SCROLL VIEW */}
-        <div className="flex-1 overflow-y-auto p-2 pb-32">
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+        <div className="flex-1 overflow-y-auto p-4 pb-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
             {gameState.players.map((p, i) => {
               if (p.id === user.uid) return null;
               const isActive = gameState.turnIndex === i;
@@ -1857,10 +1826,10 @@ export default function GuildOfShadows() {
                     isTargetable ? handleTargetPlayerClick(p.id) : null
                   }
                   className={`
-                        relative bg-gray-900/60 p-2 rounded-lg border transition-all
+                        relative bg-gray-900/80 backdrop-blur-sm p-3 rounded-xl border transition-all duration-200
                         ${
                           isActive
-                            ? "border-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.3)]"
+                            ? "border-purple-500 shadow-[0_0_20px_rgba(168,85,247,0.25)] bg-purple-900/10 scale-[1.02]"
                             : "border-gray-800"
                         }
                         ${
@@ -1871,27 +1840,30 @@ export default function GuildOfShadows() {
                         ${isSelected ? "ring-2 ring-red-500 bg-red-900/20" : ""}
                       `}
                 >
-                  <div className="flex justify-between items-start mb-2">
+                  <div className="flex justify-between items-start mb-3">
                     <div className="flex flex-col">
-                      <span className="text-xs font-bold text-gray-300 flex items-center gap-1">
+                      <span className="text-sm font-bold text-gray-200 flex items-center gap-1.5 truncate max-w-[100px]">
                         {p.name}
+                        {p.id === gameState.hostId && (
+                          <Crown size={12} className="text-yellow-500" />
+                        )}
                       </span>
-                      <span className="text-[10px] text-yellow-500 flex items-center gap-1 font-mono bg-black/30 px-1 rounded w-fit mt-0.5">
-                        {p.gold} <Coins size={8} />
+                      <span className="text-xs text-yellow-500 flex items-center gap-1 font-mono bg-black/40 px-1.5 py-0.5 rounded w-fit mt-1 border border-yellow-500/20">
+                        {p.gold} <Coins size={10} />
                       </span>
                     </div>
                     <div className="flex gap-0.5">
                       {p.hand.map((_, h) => (
                         <div
                           key={h}
-                          className="w-2 h-3 bg-purple-900 rounded-[1px] border border-purple-700/50"
+                          className="w-2.5 h-4 bg-gradient-to-b from-purple-800 to-purple-950 rounded-[2px] border border-purple-600/50 shadow-sm"
                         />
                       ))}
                     </div>
                   </div>
 
                   {/* Tableau */}
-                  <div className="flex flex-wrap gap-1">
+                  <div className="flex flex-wrap gap-1.5 min-h-[32px]">
                     {p.tableau.map((c, idx) => (
                       <div
                         key={idx}
@@ -1901,7 +1873,7 @@ export default function GuildOfShadows() {
                         }}
                         className={`${
                           targetMode === "CARD" && isSelected
-                            ? "animate-pulse cursor-pointer ring-1 ring-red-400"
+                            ? "animate-pulse cursor-pointer ring-1 ring-red-400 rounded"
                             : ""
                         }`}
                       >
@@ -1913,7 +1885,7 @@ export default function GuildOfShadows() {
                       </div>
                     ))}
                     {p.tableau.length === 0 && (
-                      <div className="h-8 w-full flex items-center justify-center text-[9px] text-gray-700 italic">
+                      <div className="w-full h-8 flex items-center justify-center text-[10px] text-gray-600 italic border border-dashed border-gray-800 rounded">
                         Empty Hall
                       </div>
                     )}
@@ -1923,18 +1895,18 @@ export default function GuildOfShadows() {
             })}
           </div>
 
-          {/* Logs Preview - Limit to last 3 */}
-          <div className="mt-4 flex flex-col items-center space-y-1 opacity-70 pointer-events-none">
+          {/* Logs Preview - Floating */}
+          <div className="mt-6 flex flex-col items-center space-y-1.5 pointer-events-none opacity-80">
             {gameState.logs
               .slice(-3)
               .reverse()
               .map((l) => (
                 <div
                   key={l.id}
-                  className={`text-[10px] px-2 py-0.5 rounded-full backdrop-blur-sm ${
+                  className={`text-[10px] px-3 py-1 rounded-full backdrop-blur-md shadow-lg border ${
                     l.type === "danger"
-                      ? "bg-red-900/50 text-red-200"
-                      : "bg-gray-800/50 text-gray-300"
+                      ? "bg-red-950/70 border-red-500/30 text-red-200"
+                      : "bg-gray-900/70 border-gray-700/50 text-gray-300"
                   }`}
                 >
                   {l.text}
@@ -1943,22 +1915,31 @@ export default function GuildOfShadows() {
           </div>
         </div>
 
-        {/* --- BOTTOM PLAYER AREA (Sticky) --- */}
-        <div className="bg-gray-900 border-t border-purple-900/30 p-2 pb-safe z-40 shadow-[0_-5px_20px_rgba(0,0,0,0.5)]">
-          {/* Info Bar */}
-          <div className="flex justify-between items-center mb-2 px-1">
-            <div className="flex items-center gap-2">
-              <div className="text-yellow-400 font-black text-xl flex items-center gap-1.5 drop-shadow-sm">
-                <Coins className="fill-yellow-400/20" size={20} /> {me.gold}
+        {/* --- BOTTOM PLAYER AREA (Flex Column for No Overlap) --- */}
+        <div className="bg-gray-950 border-t border-purple-900/30 pb-safe z-40 shadow-[0_-10px_40px_rgba(0,0,0,0.8)] flex flex-col shrink-0">
+          {/* 0. REPORT AREA (PERSISTENT & INLINE ABOVE STATUS) */}
+          <div className="w-full bg-black/20">
+            {!peekCard && morningReportData ? (
+              <MorningReportInline report={morningReportData} />
+            ) : !peekCard && eveningReportData ? (
+              <EveningReportInline report={eveningReportData} />
+            ) : null}
+          </div>
+
+          {/* 1. Status Bar */}
+          <div className="flex justify-between items-center px-4 py-2 bg-gray-900 border-b border-gray-800">
+            <div className="flex items-center gap-3">
+              <div className="text-yellow-400 font-black text-2xl flex items-center gap-2 drop-shadow-md">
+                <Coins className="fill-yellow-400/20" size={24} /> {me.gold}
               </div>
               {taxAmount > 0 && (
-                <div className="text-[10px] text-red-400 flex items-center gap-0.5 bg-red-900/20 px-1.5 py-0.5 rounded border border-red-900/50">
-                  Taxed: +{taxAmount} <Coins size={8} />
+                <div className="text-xs text-red-400 flex items-center gap-1 bg-red-950/50 px-2 py-1 rounded border border-red-900/50">
+                  Tax: +{taxAmount} <Coins size={10} />
                 </div>
               )}
             </div>
 
-            <div className="flex gap-1 overflow-x-auto max-w-[50%] no-scrollbar items-center">
+            <div className="flex gap-1.5 overflow-x-auto max-w-[50%] no-scrollbar items-center mask-linear-fade">
               {me.tableau.map((c, i) => (
                 <div key={i} className="shrink-0">
                   <CardDisplay cardId={c.cardId} turnsLeft={c.turnsLeft} tiny />
@@ -1967,23 +1948,137 @@ export default function GuildOfShadows() {
             </div>
           </div>
 
-          {/* Hand */}
-          <div className="flex gap-2 overflow-x-auto pb-2 px-1 min-h-[140px] items-end no-scrollbar">
+          {/* 2. Controls / Action Prompts (Middle Layer) */}
+          <div className="min-h-[50px] flex items-center justify-center py-2 px-4">
+            {isMyTurn && !targetMode && selectedCardIdx === null && (
+              <div className="flex gap-3 w-full justify-center">
+                {hasLookout && (
+                  <button
+                    onClick={handlePeek}
+                    className="bg-indigo-900 hover:bg-indigo-800 text-indigo-200 border border-indigo-500/50 px-5 py-2.5 rounded-xl font-bold shadow-lg flex items-center gap-2 text-sm transition-all active:scale-95"
+                  >
+                    <Search size={16} /> Peek
+                  </button>
+                )}
+
+                {me.hand.length > 5 ? (
+                  <button
+                    onClick={() => {
+                      setTargetMode("DISCARD");
+                      triggerFeedback(
+                        "neutral",
+                        "Discard Mode",
+                        "Hand limit reached",
+                        Trash2
+                      );
+                    }}
+                    className="flex-1 max-w-xs bg-red-900/90 hover:bg-red-800 text-red-100 border border-red-500/50 px-6 py-2.5 rounded-xl font-bold shadow-lg flex items-center justify-center gap-2 text-sm transition-all active:scale-95"
+                  >
+                    Discard & Pass <Trash2 size={16} />
+                  </button>
+                ) : (
+                  <button
+                    onClick={startScoutMode}
+                    className="flex-1 max-w-xs bg-gray-800 hover:bg-gray-700 text-gray-200 border border-gray-600 px-6 py-2.5 rounded-xl font-bold shadow-lg flex items-center justify-center gap-2 text-sm transition-all active:scale-95"
+                  >
+                    Pass & Scout <ArrowRightLeft size={16} />
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Mode Messages */}
+            {targetMode === "SCOUT" && (
+              <div className="flex items-center gap-3 bg-blue-900/30 border border-blue-500/30 px-4 py-2 rounded-full">
+                <span className="text-blue-300 text-sm font-bold flex items-center gap-2">
+                  <Eye size={16} /> Select card to discard
+                </span>
+                <button
+                  onClick={() => setTargetMode(null)}
+                  className="bg-gray-800 p-1 rounded-full"
+                >
+                  <X size={12} />
+                </button>
+              </div>
+            )}
+            {targetMode === "DISCARD" && (
+              <div className="flex items-center gap-3 bg-red-900/30 border border-red-500/30 px-4 py-2 rounded-full">
+                <span className="text-red-300 text-sm font-bold flex items-center gap-2">
+                  <Trash2 size={16} /> Hand Full: Discard 1
+                </span>
+                <button
+                  onClick={() => setTargetMode(null)}
+                  className="bg-gray-800 p-1 rounded-full"
+                >
+                  <X size={12} />
+                </button>
+              </div>
+            )}
+            {targetMode === "PLAYER" && (
+              <div className="flex items-center gap-3 bg-red-900/30 border border-red-500/30 px-4 py-2 rounded-full animate-pulse">
+                <span className="text-red-300 text-sm font-bold flex items-center gap-2">
+                  <AlertTriangle size={16} /> Select Target Player
+                </span>
+                <button
+                  onClick={() => {
+                    setTargetMode(null);
+                    setSelectedCardIdx(null);
+                  }}
+                  className="bg-gray-800 p-1 rounded-full"
+                >
+                  <X size={12} />
+                </button>
+              </div>
+            )}
+            {selectedCardIdx !== null && !targetMode && (
+              <button
+                onClick={() => setSelectedCardIdx(null)}
+                className="bg-gray-800 text-gray-400 px-4 py-1.5 rounded-full text-xs font-bold border border-gray-700"
+              >
+                Cancel Selection
+              </button>
+            )}
+
+            {/* Sub-modes */}
+            {targetMode === "CARD" && (
+              <div className="bg-black/60 px-4 py-2 rounded-full text-sm font-bold border border-red-500/50 text-red-200">
+                Select Agent to Destroy
+              </div>
+            )}
+            {targetMode === "OPTION" && (
+              <div className="flex gap-3 w-full justify-center">
+                <button
+                  onClick={() => handleOptionSelect("GOLD")}
+                  className="bg-yellow-700 hover:bg-yellow-600 text-white px-5 py-2 rounded-xl font-bold shadow-lg flex items-center gap-2 border border-yellow-500"
+                >
+                  Steal 4 Gold
+                </button>
+                <button
+                  onClick={() => setTargetMode("CARD")}
+                  className="bg-blue-700 hover:bg-blue-600 text-white px-5 py-2 rounded-xl font-bold shadow-lg flex items-center gap-2 border border-blue-500"
+                >
+                  Steal Agent
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* 3. Hand (Bottom Layer - Horizontal Scroll) */}
+          <div className="flex overflow-x-auto px-4 pb-4 gap-3 no-scrollbar snap-x snap-mandatory min-h-[180px] items-center">
             {me.hand.length === 0 && (
-              <div className="text-gray-600 text-xs italic w-full text-center py-4">
+              <div className="text-gray-600 text-sm italic w-full text-center py-8 border-2 border-dashed border-gray-800 rounded-xl">
                 Hand Empty
               </div>
             )}
             {me.hand.map((c, i) => (
               <div
                 key={i}
-                className={`transition-transform duration-200 ${
-                  selectedCardIdx === i ? "-translate-y-4" : ""
+                className={`snap-center transition-transform duration-200 ${
+                  selectedCardIdx === i ? "-translate-y-6 scale-105" : ""
                 }`}
               >
                 <CardDisplay
                   cardId={c}
-                  small
                   onClick={() => (isMyTurn ? handleCardClick(i) : null)}
                   disabled={
                     !isMyTurn ||
@@ -1996,142 +2091,9 @@ export default function GuildOfShadows() {
                 />
               </div>
             ))}
+            {/* Spacer for right padding in scroll view */}
+            <div className="w-2 shrink-0"></div>
           </div>
-
-          {/* Controls */}
-          {isMyTurn && (
-            <div className="absolute bottom-32 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 w-full px-4 pointer-events-none">
-              {/* SCOUT MODE OVERLAY */}
-              {targetMode === "SCOUT" && (
-                <div className="pointer-events-auto bg-black/90 backdrop-blur text-white px-6 py-4 rounded-xl border border-blue-500 shadow-2xl animate-in zoom-in flex flex-col items-center gap-2">
-                  <h3 className="font-bold text-lg flex items-center gap-2 text-blue-400">
-                    <Eye size={20} /> Scout Mode
-                  </h3>
-                  <p className="text-xs text-gray-400 text-center">
-                    Tap a card in your hand to discard it and draw a new one.
-                  </p>
-                  <button
-                    onClick={() => setTargetMode(null)}
-                    className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-1 rounded-full text-xs mt-2"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              )}
-
-              {targetMode === "DISCARD" && (
-                <div className="pointer-events-auto bg-black/90 backdrop-blur text-white px-6 py-4 rounded-xl border border-red-500 shadow-2xl animate-in zoom-in flex flex-col items-center gap-2">
-                  <h3 className="font-bold text-lg flex items-center gap-2 text-red-400">
-                    <Trash2 size={20} /> Discard Mode
-                  </h3>
-                  <p className="text-xs text-gray-400 text-center">
-                    Your hand is full. Select a card to discard and end your
-                    turn.
-                  </p>
-                  <button
-                    onClick={() => setTargetMode(null)}
-                    className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-1 rounded-full text-xs mt-2"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              )}
-
-              {targetMode === "PLAYER" && (
-                <div className="pointer-events-auto bg-black/80 backdrop-blur text-white px-4 py-2 rounded-full border border-red-500 shadow-lg animate-bounce text-sm font-bold flex items-center gap-2">
-                  <AlertTriangle size={16} className="text-red-500" /> Tap a
-                  Player to Target
-                  <button
-                    onClick={() => {
-                      setTargetMode(null);
-                      setSelectedCardIdx(null);
-                    }}
-                    className="bg-gray-700 rounded-full p-1 ml-2"
-                  >
-                    <X size={12} />
-                  </button>
-                </div>
-              )}
-              {targetMode === "CARD" && (
-                <div className="pointer-events-auto bg-black/80 backdrop-blur text-white px-4 py-2 rounded-full border border-red-500 shadow-lg text-sm font-bold">
-                  Select an Agent to Destroy
-                  <button
-                    onClick={() => {
-                      setTargetMode("PLAYER");
-                      setSelectedTargetPlayerId(null);
-                    }}
-                    className="text-[10px] underline ml-2 text-gray-400"
-                  >
-                    Back
-                  </button>
-                </div>
-              )}
-              {targetMode === "OPTION" && (
-                <div className="pointer-events-auto flex gap-2 animate-in slide-in-from-bottom-5">
-                  <button
-                    onClick={() => handleOptionSelect("GOLD")}
-                    className="bg-yellow-700 hover:bg-yellow-600 text-white px-4 py-3 rounded-xl font-bold shadow-lg flex flex-col items-center leading-tight border border-yellow-500"
-                  >
-                    <span className="text-xs font-normal">Steal</span>
-                    <span>4 Gold</span>
-                  </button>
-                  <button
-                    onClick={() => setTargetMode("CARD")}
-                    className="bg-blue-700 hover:bg-blue-600 text-white px-4 py-3 rounded-xl font-bold shadow-lg flex flex-col items-center leading-tight border border-blue-500"
-                  >
-                    <span className="text-xs font-normal">Steal</span>
-                    <span>Agent</span>
-                  </button>
-                </div>
-              )}
-
-              {!targetMode && selectedCardIdx === null && (
-                <div className="flex gap-2 pointer-events-auto">
-                  {hasLookout && (
-                    <button
-                      onClick={handlePeek}
-                      className="bg-indigo-900 hover:bg-indigo-800 text-indigo-200 border border-indigo-500/50 px-4 py-2 rounded-full font-bold shadow-lg flex items-center gap-2 text-sm"
-                    >
-                      <Search size={14} /> Peek
-                    </button>
-                  )}
-
-                  {me.hand.length > 5 ? (
-                    <button
-                      onClick={() => {
-                        setTargetMode("DISCARD");
-                        triggerFeedback(
-                          "neutral",
-                          "Discard Mode",
-                          "Hand limit reached",
-                          Trash2
-                        );
-                      }}
-                      className="bg-red-900/90 backdrop-blur hover:bg-red-800 text-red-100 border border-red-500/50 px-6 py-2 rounded-full font-bold shadow-lg flex items-center gap-2 text-sm"
-                    >
-                      Discard & Pass <Trash2 size={14} />
-                    </button>
-                  ) : (
-                    <button
-                      onClick={startScoutMode}
-                      className="bg-gray-800/90 backdrop-blur hover:bg-gray-700 text-gray-300 border border-gray-600 px-6 py-2 rounded-full font-bold shadow-lg flex items-center gap-2 text-sm"
-                    >
-                      Pass & Scout <ArrowRightLeft size={14} />
-                    </button>
-                  )}
-                </div>
-              )}
-
-              {selectedCardIdx !== null && !targetMode && (
-                <button
-                  onClick={() => setSelectedCardIdx(null)}
-                  className="pointer-events-auto bg-black/60 text-white px-4 py-1 rounded-full text-xs mb-2"
-                >
-                  Cancel
-                </button>
-              )}
-            </div>
-          )}
         </div>
       </div>
 
