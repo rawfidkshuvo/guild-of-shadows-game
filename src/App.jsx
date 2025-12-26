@@ -54,6 +54,7 @@ import {
   Receipt,
   Hammer,
   Sparkles,
+  Loader2,
 } from "lucide-react";
 
 // ---------------------------------------------------------------------------
@@ -377,7 +378,7 @@ const CardDisplay = ({
             ${
               small ? "text-[8px] h-8 overflow-hidden" : "text-[9px] h-auto p-1"
             }
-        `}
+          `}
         >
           {card.desc}
         </div>
@@ -526,10 +527,10 @@ const ReportPopup = ({
   borderColor,
 }) => (
   <div
-    className={`absolute bottom-[200px] left-1/2 -translate-x-1/2 z-[100] w-72 md:w-80 animate-in slide-in-from-bottom-5 fade-in duration-300`}
+    className={`fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[150] w-72 md:w-80 animate-in zoom-in-95 fade-in duration-300`}
   >
     <div
-      className={`bg-gray-900/95 backdrop-blur-md border-2 ${borderColor} rounded-xl shadow-[0_0_30px_rgba(0,0,0,0.5)] overflow-hidden flex flex-col`}
+      className={`bg-gray-900/95 backdrop-blur-xl border-2 ${borderColor} rounded-xl shadow-[0_0_50px_rgba(0,0,0,0.7)] overflow-hidden flex flex-col`}
     >
       <div
         className={`p-3 border-b ${borderColor} bg-black/40 flex justify-between items-center`}
@@ -539,12 +540,22 @@ const ReportPopup = ({
         </div>
         <button
           onClick={onClose}
-          className="hover:bg-white/10 rounded p-1 transition-colors"
+          className="hover:bg-white/10 rounded p-1 transition-colors text-gray-400 hover:text-white"
         >
           <X size={16} />
         </button>
       </div>
-      <div className="p-4 text-sm text-gray-200">{children}</div>
+      <div className="p-4 text-sm text-gray-200 max-h-[60vh] overflow-y-auto">
+        {children}
+      </div>
+      <div className="p-2 bg-black/20 border-t border-gray-800 flex justify-center">
+        <button
+          onClick={onClose}
+          className="text-xs uppercase tracking-widest text-gray-500 hover:text-white transition-colors py-1"
+        >
+          Dismiss
+        </button>
+      </div>
     </div>
   </div>
 );
@@ -677,6 +688,9 @@ export default function GuildOfShadows() {
   const [gameState, setGameState] = useState(null);
   const [error, setError] = useState("");
 
+  // FIX: Added missing loading state
+  const [loading, setLoading] = useState(false);
+
   // PERSISTENCE FIX: Load room ID from local storage
   const [roomId, setRoomId] = useState(
     localStorage.getItem("guild_room_id") || ""
@@ -689,7 +703,7 @@ export default function GuildOfShadows() {
   const [showGuide, setShowGuide] = useState(false);
   const [showLogs, setShowLogs] = useState(false);
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
-  const [targetMode, setTargetMode] = useState(null); // PLAYER, CARD, OPTION, SCOUT
+  const [targetMode, setTargetMode] = useState(null); // PLAYER, CARD, OPTION, SCOUT, DISCARD
   const [selectedTargetPlayerId, setSelectedTargetPlayerId] = useState(null);
   const [peekCard, setPeekCard] = useState(null);
 
@@ -785,14 +799,81 @@ export default function GuildOfShadows() {
 
   const createRoom = async () => {
     if (!playerName) return setError("Enter Alias");
-    const newId = Math.random().toString(36).substring(2, 7).toUpperCase();
-    await setDoc(
-      doc(db, "artifacts", APP_ID, "public", "data", "rooms", newId),
-      {
-        roomId: newId,
-        hostId: user.uid,
-        status: "lobby",
+
+    // FIX: Set loading state
+    setLoading(true);
+
+    try {
+      const newId = Math.random().toString(36).substring(2, 7).toUpperCase();
+      await setDoc(
+        doc(db, "artifacts", APP_ID, "public", "data", "rooms", newId),
+        {
+          roomId: newId,
+          hostId: user.uid,
+          status: "lobby",
+          players: [
+            {
+              id: user.uid,
+              name: playerName,
+              gold: 0,
+              hand: [],
+              tableau: [],
+              ready: false,
+            },
+          ],
+          deck: [],
+          discardPile: [],
+          turnIndex: 0,
+          logs: [],
+          lastAction: null,
+          turnReport: null,
+          eveningReport: null,
+        }
+      );
+      setRoomId(newId);
+      localStorage.setItem("guild_room_id", newId); // Persist
+    } catch (e) {
+      console.error(e);
+      setError("Failed to create room.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const joinRoom = async () => {
+    if (!roomCode || !playerName) return setError("Enter Info");
+
+    // FIX: Set loading state
+    setLoading(true);
+
+    try {
+      const ref = doc(
+        db,
+        "artifacts",
+        APP_ID,
+        "public",
+        "data",
+        "rooms",
+        roomCode
+      );
+      const snap = await getDoc(ref);
+      if (!snap.exists()) {
+        setLoading(false);
+        return setError("Invalid Room");
+      }
+      const data = snap.data();
+      if (data.status !== "lobby") {
+        setLoading(false);
+        return setError("Game Started");
+      }
+      if (data.players.length >= 6) {
+        setLoading(false);
+        return setError("Room Full");
+      }
+
+      await updateDoc(ref, {
         players: [
+          ...data.players,
           {
             id: user.uid,
             name: playerName,
@@ -802,53 +883,15 @@ export default function GuildOfShadows() {
             ready: false,
           },
         ],
-        deck: [],
-        discardPile: [],
-        turnIndex: 0,
-        logs: [],
-        lastAction: null,
-        turnReport: null,
-        eveningReport: null,
-      }
-    );
-    setRoomId(newId);
-    localStorage.setItem("guild_room_id", newId); // Persist
-    setLoading(false);
-  };
-
-  const joinRoom = async () => {
-    if (!roomCode || !playerName) return setError("Enter Info");
-    const ref = doc(
-      db,
-      "artifacts",
-      APP_ID,
-      "public",
-      "data",
-      "rooms",
-      roomCode
-    );
-    const snap = await getDoc(ref);
-    if (!snap.exists()) return setError("Invalid Room");
-    const data = snap.data();
-    if (data.status !== "lobby") return setError("Game Started");
-    if (data.players.length >= 6) return setError("Room Full");
-
-    await updateDoc(ref, {
-      players: [
-        ...data.players,
-        {
-          id: user.uid,
-          name: playerName,
-          gold: 0,
-          hand: [],
-          tableau: [],
-          ready: false,
-        },
-      ],
-    });
-    setRoomId(roomCode);
-    localStorage.setItem("guild_room_id", roomCode); // Persist
-    setLoading(false);
+      });
+      setRoomId(roomCode);
+      localStorage.setItem("guild_room_id", roomCode); // Persist
+    } catch (e) {
+      console.error(e);
+      setError("Failed to join room.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const kickPlayer = async (pidToKick) => {
@@ -1311,7 +1354,45 @@ export default function GuildOfShadows() {
     );
   };
 
+  const handleExcessDiscard = async (handIdx) => {
+    const players = JSON.parse(JSON.stringify(gameState.players));
+    const meIdx = gameState.turnIndex;
+    const me = players[meIdx];
+    const deck = [...gameState.deck];
+    const discardPile = [...gameState.discardPile];
+    const logs = [];
+
+    // Discard chosen card
+    const discarded = me.hand.splice(handIdx, 1)[0];
+    discardPile.push(discarded);
+
+    logs.push({
+      text: `🗑️ ${me.name} discarded ${CARDS[discarded].name} (Hand Limit).`,
+      type: "neutral",
+      id: Date.now(),
+    });
+
+    const eveningReport = {
+      playerId: me.id,
+      actionName: "Discard",
+      cost: 0,
+      tax: 0,
+      gains: [],
+      netChange: 0,
+      seen: false,
+    };
+
+    setSelectedCardIdx(null);
+    setTargetMode(null);
+    await nextTurn(players, deck, discardPile, logs, null, eveningReport);
+  };
+
   const handleCardClick = (idx) => {
+    if (targetMode === "DISCARD") {
+      handleExcessDiscard(idx);
+      return;
+    }
+
     if (targetMode === "SCOUT") {
       handleScout(idx);
       return;
@@ -1512,9 +1593,7 @@ export default function GuildOfShadows() {
 
   if (view === "menu") {
     return (
-      <div
-        className="min-h-screen bg-gray-950 text-white flex flex-col items-center justify-center p-4 relative overflow-hidden font-sans"
-      >
+      <div className="min-h-screen bg-gray-950 text-white flex flex-col items-center justify-center p-4 relative overflow-hidden font-sans">
         <FloatingBackground />
 
         <div className="z-10 text-center mb-8 animate-in fade-in zoom-in duration-700">
@@ -1546,9 +1625,15 @@ export default function GuildOfShadows() {
 
           <button
             onClick={createRoom}
-            className="w-full bg-gradient-to-r from-purple-700 to-indigo-600 hover:from-purple-600 p-3 rounded font-bold mb-3 flex items-center justify-center gap-2 shadow-lg"
+            disabled={loading}
+            className="w-full bg-gradient-to-r from-purple-700 to-indigo-600 hover:from-purple-600 p-3 rounded font-bold mb-3 flex items-center justify-center gap-2 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <Crown size={18} /> Establish Guild
+            {loading ? (
+              <Loader2 size={18} className="animate-spin" />
+            ) : (
+              <Crown size={18} />
+            )}
+            {loading ? "Establishing..." : "Establish Guild"}
           </button>
 
           <div className="flex gap-2 mb-3">
@@ -1560,9 +1645,14 @@ export default function GuildOfShadows() {
             />
             <button
               onClick={joinRoom}
-              className="bg-gray-800 hover:bg-gray-700 border border-gray-600 px-4 rounded font-bold"
+              disabled={loading}
+              className="bg-gray-800 hover:bg-gray-700 border border-gray-600 px-4 rounded font-bold disabled:opacity-50 disabled:cursor-not-allowed min-w-[80px] flex items-center justify-center"
             >
-              Join
+              {loading ? (
+                <Loader2 size={16} className="animate-spin" />
+              ) : (
+                "Join"
+              )}
             </button>
           </div>
 
@@ -1593,9 +1683,7 @@ export default function GuildOfShadows() {
   if (view === "lobby" && gameState) {
     const isHost = gameState.hostId === user.uid;
     return (
-      <div
-        className="min-h-screen bg-gray-950 text-white flex flex-col items-center justify-center p-4 relative"
-      >
+      <div className="min-h-screen bg-gray-950 text-white flex flex-col items-center justify-center p-4 relative">
         <FloatingBackground />
         <div className="z-10 w-full max-w-md bg-gray-900/90 backdrop-blur p-6 rounded-2xl border border-purple-900/50 shadow-2xl">
           <div className="flex justify-between items-center mb-6 border-b border-gray-800 pb-4">
@@ -1685,28 +1773,36 @@ export default function GuildOfShadows() {
 
       {/* --- NOTIFICATIONS --- */}
       {feedback && <FeedbackOverlay {...feedback} />}
-      {morningReportData && (
-        <MorningReport report={morningReportData} onClose={closeTurnReport} />
-      )}
-      {eveningReportData && (
-        <EveningReport
-          report={eveningReportData}
-          onClose={closeEveningReport}
-        />
-      )}
 
+      {/* RENDER LOGIC: Ensure Mutual Exclusivity and Proper Layering */}
       {peekCard && (
         <div
           className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur"
           onClick={() => setPeekCard(null)}
         >
-          <div className="animate-in zoom-in duration-200 flex flex-col items-center">
-            <div className="text-white font-bold mb-4 text-xl">Top of Deck</div>
-            <CardDisplay cardId={peekCard} />
-            <div className="mt-4 text-gray-400 text-sm">(Tap to close)</div>
+          <div className="animate-in zoom-in duration-200 flex flex-col items-center p-8">
+            <div className="text-white font-bold mb-6 text-2xl tracking-widest">
+              Top of Deck
+            </div>
+            <div className="scale-150 transform transition-all">
+              <CardDisplay cardId={peekCard} />
+            </div>
+            <div className="mt-8 text-gray-400 text-sm animate-pulse">
+              (Tap anywhere to close)
+            </div>
           </div>
         </div>
       )}
+
+      {/* Only show Morning Report if no Peek card. Only show Evening if no Morning. */}
+      {!peekCard && morningReportData ? (
+        <MorningReport report={morningReportData} onClose={closeTurnReport} />
+      ) : !peekCard && eveningReportData ? (
+        <EveningReport
+          report={eveningReportData}
+          onClose={closeEveningReport}
+        />
+      ) : null}
 
       {/* --- TOP BAR --- */}
       <div className="h-12 bg-gray-900/90 border-b border-gray-800 flex items-center justify-between px-3 z-30 shrink-0">
@@ -1893,6 +1989,7 @@ export default function GuildOfShadows() {
                     !isMyTurn ||
                     (targetMode !== null &&
                       targetMode !== "SCOUT" &&
+                      targetMode !== "DISCARD" &&
                       selectedCardIdx !== i)
                   }
                   highlight={selectedCardIdx === i}
@@ -1912,6 +2009,24 @@ export default function GuildOfShadows() {
                   </h3>
                   <p className="text-xs text-gray-400 text-center">
                     Tap a card in your hand to discard it and draw a new one.
+                  </p>
+                  <button
+                    onClick={() => setTargetMode(null)}
+                    className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-1 rounded-full text-xs mt-2"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              )}
+
+              {targetMode === "DISCARD" && (
+                <div className="pointer-events-auto bg-black/90 backdrop-blur text-white px-6 py-4 rounded-xl border border-red-500 shadow-2xl animate-in zoom-in flex flex-col items-center gap-2">
+                  <h3 className="font-bold text-lg flex items-center gap-2 text-red-400">
+                    <Trash2 size={20} /> Discard Mode
+                  </h3>
+                  <p className="text-xs text-gray-400 text-center">
+                    Your hand is full. Select a card to discard and end your
+                    turn.
                   </p>
                   <button
                     onClick={() => setTargetMode(null)}
@@ -1980,12 +2095,30 @@ export default function GuildOfShadows() {
                       <Search size={14} /> Peek
                     </button>
                   )}
-                  <button
-                    onClick={startScoutMode}
-                    className="bg-gray-800/90 backdrop-blur hover:bg-gray-700 text-gray-300 border border-gray-600 px-6 py-2 rounded-full font-bold shadow-lg flex items-center gap-2 text-sm"
-                  >
-                    Pass & Scout <ArrowRightLeft size={14} />
-                  </button>
+
+                  {me.hand.length > 5 ? (
+                    <button
+                      onClick={() => {
+                        setTargetMode("DISCARD");
+                        triggerFeedback(
+                          "neutral",
+                          "Discard Mode",
+                          "Hand limit reached",
+                          Trash2
+                        );
+                      }}
+                      className="bg-red-900/90 backdrop-blur hover:bg-red-800 text-red-100 border border-red-500/50 px-6 py-2 rounded-full font-bold shadow-lg flex items-center gap-2 text-sm"
+                    >
+                      Discard & Pass <Trash2 size={14} />
+                    </button>
+                  ) : (
+                    <button
+                      onClick={startScoutMode}
+                      className="bg-gray-800/90 backdrop-blur hover:bg-gray-700 text-gray-300 border border-gray-600 px-6 py-2 rounded-full font-bold shadow-lg flex items-center gap-2 text-sm"
+                    >
+                      Pass & Scout <ArrowRightLeft size={14} />
+                    </button>
+                  )}
                 </div>
               )}
 
@@ -2129,4 +2262,3 @@ export default function GuildOfShadows() {
     </div>
   );
 }
-//maintenance and refresh or back fixed complete
