@@ -710,19 +710,6 @@ export default function GuildOfShadows() {
     return onAuthStateChanged(auth, setUser);
   }, []);
 
-  // --- NAVIGATION GUARD ---
-  useEffect(() => {
-    const handleBeforeUnload = (e) => {
-      if (roomId) {
-        e.preventDefault();
-        e.returnValue = "";
-        return "";
-      }
-    };
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, [roomId]);
-
   useEffect(() => {
     if (!roomId || !user) return;
     return onSnapshot(
@@ -1526,7 +1513,6 @@ export default function GuildOfShadows() {
   if (view === "menu") {
     return (
       <div
-        style={{ overscrollBehavior: "none" }}
         className="min-h-screen bg-gray-950 text-white flex flex-col items-center justify-center p-4 relative overflow-hidden font-sans"
       >
         <FloatingBackground />
@@ -1608,7 +1594,6 @@ export default function GuildOfShadows() {
     const isHost = gameState.hostId === user.uid;
     return (
       <div
-        style={{ overscrollBehavior: "none" }}
         className="min-h-screen bg-gray-950 text-white flex flex-col items-center justify-center p-4 relative"
       >
         <FloatingBackground />
