@@ -1539,7 +1539,7 @@ export default function GuildOfShadows() {
           <h1 className="text-5xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-b from-purple-400 to-indigo-600 font-serif tracking-widest">
             GUILD OF SHADOWS
           </h1>
-          <p className="text-gray-400 tracking-[0.3em] uppercase mt-2 text-xs md:text-sm">
+          <p className="text-white-400/60 tracking-[0.3em] uppercase mt-2">
             In Shadows We Trust
           </p>
         </div>
@@ -1588,6 +1588,18 @@ export default function GuildOfShadows() {
           </button>
         </div>
         {showGuide && <GuideModal onClose={() => setShowGuide(false)} />}
+        <div className="absolute bottom-4 text-slate-600 text-xs text-center">
+          Developed by <strong>RAWFID K SHUVO</strong>. Visit{" "}
+          <a
+            href="https://rawfidkshuvo.github.io/gamehub/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-purple-500 underline hover:text-purple-600"
+          >
+            GAMEHUB
+          </a>{" "}
+          for more games.
+        </div>
       </div>
     );
   }
