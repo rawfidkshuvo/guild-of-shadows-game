@@ -428,7 +428,7 @@ const GuideModal = ({ onClose }) => (
               <strong>3 Players:</strong> 18 Gold
             </li>
             <li>
-              <strong>4+ Players:</strong> 15 Gold
+              <strong>4 Players:</strong> 15 Gold
             </li>
           </ul>
         </section>
@@ -782,7 +782,7 @@ export default function GuildOfShadows() {
         setLoading(false);
         return setError("Game Started");
       }
-      if (data.players.length >= 6) {
+      if (data.players.length >= 4) {
         setLoading(false);
         return setError("Room Full");
       }
