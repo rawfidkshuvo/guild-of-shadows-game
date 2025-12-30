@@ -1785,9 +1785,13 @@ export default function GuildOfShadows() {
         </div>
         <div className="flex gap-3">
           <button
-            onClick={() => setShowLogs(!showLogs)}
-            className="p-2 text-gray-400 hover:bg-gray-800 rounded-full relative transition-colors"
-          >
+              onClick={() => setShowLogs(!showLogs)}
+              className={`p-2 rounded-full ${
+                showLogs
+                  ? "bg-green-900 text-green-400"
+                  : "text-gray-400 hover:bg-gray-800"
+              }`}
+            >
             <History size={20} />
             {gameState.logs.length > 0 && (
               <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-gray-900"></span>
@@ -2099,7 +2103,7 @@ export default function GuildOfShadows() {
 
       {/* --- MODALS --- */}
       {showLogs && (
-        <div className="fixed inset-0 top-14 bg-black/90 z-[155] p-6 flex flex-col">
+        <div className="fixed top-16 right-4 w-64 max-h-60 bg-gray-900/95 border border-gray-700 rounded-xl z-[155] overflow-y-auto p-2 shadow-2xl">
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-xl font-bold text-white">Shadow Log</h3>
             <button onClick={() => setShowLogs(false)}>
