@@ -1774,7 +1774,7 @@ export default function GuildOfShadows() {
       )}
 
       {/* --- TOP BAR --- */}
-      <div className="h-14 bg-gray-900/90 border-b border-gray-800 flex items-center justify-between px-4 z-30 shrink-0 shadow-md">
+      <div className="h-14 bg-gray-900/90 border-b border-gray-800 flex items-center justify-between px-4 z-[160] shrink-0 shadow-md">
         <div className="flex items-center gap-2">
           <span className="font-serif text-purple-500 font-bold hidden md:inline text-lg">
             GUILD OF SHADOWS
@@ -2099,7 +2099,7 @@ export default function GuildOfShadows() {
 
       {/* --- MODALS --- */}
       {showLogs && (
-        <div className="fixed inset-0 bg-black/90 z-[100] p-6 flex flex-col">
+        <div className="fixed inset-0 top-14 bg-black/90 z-[155] p-6 flex flex-col">
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-xl font-bold text-white">Shadow Log</h3>
             <button onClick={() => setShowLogs(false)}>
@@ -2161,7 +2161,7 @@ export default function GuildOfShadows() {
       )}
 
       {gameState.status === "finished" && (
-        <div className="absolute inset-0 z-[150] bg-black/90 flex flex-col items-center justify-center p-6 text-center animate-in fade-in">
+        <div className="fixed inset-0 top-14 z-[150] bg-black/90 flex flex-col items-center justify-center p-6 text-center animate-in fade-in">
           <Trophy size={80} className="text-yellow-400 mb-6 animate-bounce" />
           <h2 className="text-4xl font-black text-white mb-2">GAME OVER</h2>
           <p className="text-2xl text-purple-400 font-serif mb-8">
