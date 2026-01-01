@@ -294,6 +294,51 @@ const FeedbackOverlay = ({ type, message, subtext, icon: Icon }) => (
   </div>
 );
 
+const GlobalActionNotification = ({ notification }) => {
+  if (!notification) return null;
+
+  // Determine styling based on log type
+  let bgClass = "bg-gray-800 border-gray-600";
+  let icon = <Info className="text-gray-400" size={20} />;
+
+  if (notification.type === "danger") {
+    bgClass = "bg-red-950/90 border-red-500 text-red-100";
+    icon = <Sword className="text-red-500" size={20} />;
+  } else if (notification.type === "success") {
+    bgClass = "bg-green-950/90 border-green-500 text-green-100";
+    icon = <Sparkles className="text-green-500" size={20} />;
+  } else if (notification.type === "warning") {
+    bgClass = "bg-orange-950/90 border-orange-500 text-orange-100";
+    icon = <AlertTriangle className="text-orange-500" size={20} />;
+  } else if (notification.type === "failure") {
+    bgClass = "bg-gray-800/90 border-gray-500 text-gray-300";
+    icon = <X className="text-gray-400" size={20} />;
+  }
+
+  return (
+    <div className="fixed top-20 left-0 right-0 z-[170] flex justify-center pointer-events-none px-4">
+      <div
+        key={notification.id} // Key change triggers animation reset
+        className={`
+          flex items-center gap-3 px-6 py-4 rounded-xl border-2 shadow-[0_10px_40px_rgba(0,0,0,0.5)] backdrop-blur-md
+          animate-in slide-in-from-top-4 fade-in zoom-in-95 duration-300
+          max-w-md w-full text-center md:text-left ${bgClass}
+        `}
+      >
+        <div className="shrink-0 p-2 bg-black/30 rounded-full">{icon}</div>
+        <div className="flex-1">
+          <p className="font-bold text-sm md:text-base leading-tight drop-shadow-md">
+            {notification.text}
+          </p>
+          <p className="text-[10px] opacity-60 uppercase tracking-widest mt-1 font-bold">
+            New Event
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const CardDisplay = ({
   cardId,
   onClick,
@@ -611,6 +656,9 @@ export default function GuildOfShadows() {
     localStorage.getItem("guild_room_id") || ""
   );
   const [isMaintenance, setIsMaintenance] = useState(false);
+  // --- NEW STATE FOR GLOBAL NOTIFICATIONS ---
+  const [globalNotification, setGlobalNotification] = useState(null);
+  const lastLogIdRef = useRef(0);
 
   // UI States
   const [selectedCardIdx, setSelectedCardIdx] = useState(null);
@@ -698,6 +746,33 @@ export default function GuildOfShadows() {
       (err) => console.error(err)
     );
   }, [roomId, user]);
+
+  // --- NEW EFFECT: WATCH LOGS ---
+  useEffect(() => {
+    if (!gameState || !gameState.logs || gameState.logs.length === 0) return;
+
+    // Get the very last log entry
+    const latestLog = gameState.logs[gameState.logs.length - 1];
+
+    // Check if this is actually a new log we haven't shown yet
+    // We use a ref to track the ID so we don't show it on every re-render,
+    // only when the data actually changes.
+    if (latestLog.id > lastLogIdRef.current) {
+      
+      // Update ref
+      lastLogIdRef.current = latestLog.id;
+
+      // Show notification
+      setGlobalNotification(latestLog);
+
+      // Auto-hide after 4 seconds
+      const timer = setTimeout(() => {
+        setGlobalNotification(null);
+      }, 4000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [gameState?.logs]); // Dependency ensures this runs when Firestore updates logs
 
   useEffect(() => {
     const unsub = onSnapshot(doc(db, "game_hub_settings", "config"), (doc) => {
@@ -1703,6 +1778,9 @@ export default function GuildOfShadows() {
 
       {/* --- NOTIFICATIONS --- */}
       {feedback && <FeedbackOverlay {...feedback} />}
+
+      {/* ADD THIS LINE HERE: */}
+      <GlobalActionNotification notification={globalNotification} />
 
       {/* RENDER LOGIC: Ensure Mutual Exclusivity and Proper Layering */}
       {peekCard && (
