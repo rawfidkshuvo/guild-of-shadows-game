@@ -76,6 +76,7 @@ const db = getFirestore(app);
 
 const APP_ID = typeof __app_id !== "undefined" ? __app_id : "guild-shadows";
 const GAME_ID = "15";
+
 // ---------------------------------------------------------------------------
 // GAME DATA & CONSTANTS
 // ---------------------------------------------------------------------------
@@ -294,45 +295,80 @@ const FeedbackOverlay = ({ type, message, subtext, icon: Icon }) => (
   </div>
 );
 
-const GlobalActionNotification = ({ notification }) => {
-  if (!notification) return null;
+// --- NEW COMPONENT: GLOBAL ACTION BROADCAST ---
+const ActionBroadcast = ({ event, onClose }) => {
+  useEffect(() => {
+    if (event) {
+      const timer = setTimeout(onClose, 4000); // Auto close after 4s
+      return () => clearTimeout(timer);
+    }
+  }, [event, onClose]);
 
-  // Determine styling based on log type
-  let bgClass = "bg-gray-800 border-gray-600";
-  let icon = <Info className="text-gray-400" size={20} />;
+  if (!event) return null;
 
-  if (notification.type === "danger") {
-    bgClass = "bg-red-950/90 border-red-500 text-red-100";
-    icon = <Sword className="text-red-500" size={20} />;
-  } else if (notification.type === "success") {
-    bgClass = "bg-green-950/90 border-green-500 text-green-100";
-    icon = <Sparkles className="text-green-500" size={20} />;
-  } else if (notification.type === "warning") {
-    bgClass = "bg-orange-950/90 border-orange-500 text-orange-100";
-    icon = <AlertTriangle className="text-orange-500" size={20} />;
-  } else if (notification.type === "failure") {
-    bgClass = "bg-gray-800/90 border-gray-500 text-gray-300";
-    icon = <X className="text-gray-400" size={20} />;
-  }
+  const isScout = event.type === "SCOUT";
+  const isDiscard = event.type === "DISCARD";
+  const isAction = event.type === "PLAY";
+
+  // Resolve Card Data
+  const card = event.cardId ? CARDS[event.cardId] : null;
 
   return (
-    <div className="fixed top-20 left-0 right-0 z-[170] flex justify-center pointer-events-none px-4">
-      <div
-        key={notification.id} // Key change triggers animation reset
-        className={`
-          flex items-center gap-3 px-6 py-4 rounded-xl border-2 shadow-[0_10px_40px_rgba(0,0,0,0.5)] backdrop-blur-md
-          animate-in slide-in-from-top-4 fade-in zoom-in-95 duration-300
-          max-w-md w-full text-center md:text-left ${bgClass}
-        `}
-      >
-        <div className="shrink-0 p-2 bg-black/30 rounded-full">{icon}</div>
-        <div className="flex-1">
-          <p className="font-bold text-sm md:text-base leading-tight drop-shadow-md">
-            {notification.text}
-          </p>
-          <p className="text-[10px] opacity-60 uppercase tracking-widest mt-1 font-bold">
-            New Event
-          </p>
+    <div className="fixed inset-0 z-[180] flex items-center justify-center pointer-events-none px-4">
+      <div className="bg-gray-900/95 backdrop-blur-xl border-2 border-purple-500/50 shadow-[0_0_50px_rgba(168,85,247,0.4)] rounded-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-4 duration-300 pointer-events-auto">
+        {/* HEADER: Actor Name */}
+        <div className="bg-gradient-to-r from-gray-900 via-purple-900 to-gray-900 p-3 text-center border-b border-purple-500/30">
+          <h3 className="font-bold text-lg text-white tracking-widest uppercase flex items-center justify-center gap-2">
+            <User size={18} className="text-purple-400" />
+            {event.actorName}
+          </h3>
+          <div className="text-[10px] text-purple-200 uppercase tracking-widest opacity-80">
+            {isScout
+              ? "Scouting Mission"
+              : isDiscard
+              ? "Forced Discard"
+              : "Played Action"}
+          </div>
+        </div>
+
+        {/* BODY: The Content */}
+        <div className="p-6 flex flex-col items-center">
+          {/* Card or Icon Display */}
+          <div className="mb-6 scale-110">
+            {isAction && card ? (
+              <CardDisplay
+                cardId={event.cardId}
+                small
+                disabled
+                showCost={false}
+              />
+            ) : (
+              <div className="w-20 h-28 bg-gray-800 rounded-xl border-2 border-gray-600 flex items-center justify-center shadow-inner">
+                {isScout ? (
+                  <Eye size={32} className="text-blue-400" />
+                ) : (
+                  <Trash2 size={32} className="text-red-400" />
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Outcomes List */}
+          <div className="w-full space-y-2">
+            {event.outcomes.map((text, i) => (
+              <div
+                key={i}
+                className="bg-black/40 rounded p-2 text-center text-sm border border-gray-700/50 text-gray-200 shadow-sm font-medium"
+              >
+                {text}
+              </div>
+            ))}
+            {event.outcomes.length === 0 && (
+              <div className="text-center text-gray-500 text-xs italic">
+                No visible effect.
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
@@ -656,9 +692,6 @@ export default function GuildOfShadows() {
     localStorage.getItem("guild_room_id") || ""
   );
   const [isMaintenance, setIsMaintenance] = useState(false);
-  // --- NEW STATE FOR GLOBAL NOTIFICATIONS ---
-  const [globalNotification, setGlobalNotification] = useState(null);
-  const lastLogIdRef = useRef(0);
 
   // UI States
   const [selectedCardIdx, setSelectedCardIdx] = useState(null);
@@ -672,6 +705,10 @@ export default function GuildOfShadows() {
 
   // New state for Doppelganger confirmation
   const [doppelgangerConfirm, setDoppelgangerConfirm] = useState(null);
+
+  // Global Action Notification State
+  const [activeEvent, setActiveEvent] = useState(null);
+  const lastEventIdRef = useRef(0);
 
   // Local Report States (To prevent showing other people's reports if game state updates)
   const [morningReportData, setMorningReportData] = useState(null);
@@ -708,10 +745,16 @@ export default function GuildOfShadows() {
 
           setGameState(data);
 
-          // --- REPORT CAPTURE ---
-          // We copy the report to local state if it belongs to us.
-          // This persists it on screen even if the DB object changes to another player's report later.
+          // --- CHECK FOR NEW PUBLIC EVENT ---
+          if (
+            data.latestPublicEvent &&
+            data.latestPublicEvent.id > lastEventIdRef.current
+          ) {
+            lastEventIdRef.current = data.latestPublicEvent.id;
+            setActiveEvent(data.latestPublicEvent);
+          }
 
+          // --- REPORT CAPTURE ---
           // 1. Morning Report
           if (
             data.status === "playing" &&
@@ -746,33 +789,6 @@ export default function GuildOfShadows() {
       (err) => console.error(err)
     );
   }, [roomId, user]);
-
-  // --- NEW EFFECT: WATCH LOGS ---
-  useEffect(() => {
-    if (!gameState || !gameState.logs || gameState.logs.length === 0) return;
-
-    // Get the very last log entry
-    const latestLog = gameState.logs[gameState.logs.length - 1];
-
-    // Check if this is actually a new log we haven't shown yet
-    // We use a ref to track the ID so we don't show it on every re-render,
-    // only when the data actually changes.
-    if (latestLog.id > lastLogIdRef.current) {
-      
-      // Update ref
-      lastLogIdRef.current = latestLog.id;
-
-      // Show notification
-      setGlobalNotification(latestLog);
-
-      // Auto-hide after 4 seconds
-      const timer = setTimeout(() => {
-        setGlobalNotification(null);
-      }, 4000);
-
-      return () => clearTimeout(timer);
-    }
-  }, [gameState?.logs]); // Dependency ensures this runs when Firestore updates logs
 
   useEffect(() => {
     const unsub = onSnapshot(doc(db, "game_hub_settings", "config"), (doc) => {
@@ -820,6 +836,7 @@ export default function GuildOfShadows() {
           lastAction: null,
           turnReport: null,
           eveningReport: null,
+          latestPublicEvent: null, // Init
         }
       );
       setRoomId(newId);
@@ -946,6 +963,7 @@ export default function GuildOfShadows() {
         lastAction: null,
         turnReport: null,
         eveningReport: null,
+        latestPublicEvent: null,
       }
     );
   };
@@ -979,6 +997,7 @@ export default function GuildOfShadows() {
         winnerId: null,
         logs: [],
         players,
+        latestPublicEvent: null,
       }
     );
     setShowLeaveConfirm(false);
@@ -1012,7 +1031,8 @@ export default function GuildOfShadows() {
     discardPile,
     logs,
     lastAction = null,
-    eveningReport = null
+    eveningReport = null,
+    publicEvent = null
   ) => {
     let nextIdx = (gameState.turnIndex + 1) % updatedPlayers.length;
     let nextPlayer = updatedPlayers[nextIdx];
@@ -1127,7 +1147,8 @@ export default function GuildOfShadows() {
         logs: arrayUnion(...logs),
         lastAction: lastAction !== null ? lastAction : gameState.lastAction,
         turnReport,
-        eveningReport: eveningReport, // Generated for the player who JUST finished
+        eveningReport: eveningReport,
+        latestPublicEvent: publicEvent, // SAVE GLOBAL EVENT
       }
     );
   };
@@ -1147,6 +1168,7 @@ export default function GuildOfShadows() {
     const card = CARDS[cardId];
 
     let reportGains = [];
+    const publicOutcomes = [];
     let netChange = -(card.cost + tax);
 
     // Pay Cost
@@ -1167,6 +1189,8 @@ export default function GuildOfShadows() {
         id: Date.now(),
       });
       reportGains.push({ desc: "Recruited Agent", amount: 0 });
+      publicOutcomes.push(`Recruited ${card.name}`);
+      publicOutcomes.push(`Active for ${AGENT_LIFESPAN} turns`);
     } else {
       discardPile.push(cardId);
       newLastAction = { cardId, playerId: me.id };
@@ -1180,6 +1204,7 @@ export default function GuildOfShadows() {
           type: "neutral",
           id: Date.now(),
         });
+        publicOutcomes.push("Gained +2 Gold from Supply");
       } else if (cardId === "HEIST") {
         const roll = Math.floor(Math.random() * 6) + 1;
         if (roll >= 4) {
@@ -1191,6 +1216,7 @@ export default function GuildOfShadows() {
             type: "success",
             id: Date.now(),
           });
+          publicOutcomes.push("Heist Successful: +5 Gold!");
         } else {
           reportGains.push({ desc: "Heist Failed", amount: 0 });
           logs.push({
@@ -1198,6 +1224,7 @@ export default function GuildOfShadows() {
             type: "failure",
             id: Date.now(),
           });
+          publicOutcomes.push("Heist Failed: 0 Gold.");
         }
       } else if (cardId === "THIEF") {
         const target = players.find((p) => p.id === targetPlayerId);
@@ -1208,6 +1235,8 @@ export default function GuildOfShadows() {
             type: "warning",
             id: Date.now(),
           });
+          publicOutcomes.push(`Targeted ${target.name}`);
+          publicOutcomes.push("Blocked by Bodyguard!");
         } else {
           const amount = Math.min(target.gold, 2);
           target.gold -= amount;
@@ -1219,6 +1248,7 @@ export default function GuildOfShadows() {
             type: "danger",
             id: Date.now(),
           });
+          publicOutcomes.push(`Stole ${amount} Gold from ${target.name}`);
         }
       } else if (cardId === "ASSASSIN") {
         const target = players.find((p) => p.id === targetPlayerId);
@@ -1228,6 +1258,8 @@ export default function GuildOfShadows() {
             type: "warning",
             id: Date.now(),
           });
+          publicOutcomes.push(`Targeted ${target.name}`);
+          publicOutcomes.push("Blocked by Bodyguard!");
         } else {
           if (secondaryTarget !== null && target.tableau[secondaryTarget]) {
             const killed = target.tableau[secondaryTarget];
@@ -1240,6 +1272,9 @@ export default function GuildOfShadows() {
               type: "danger",
               id: Date.now(),
             });
+            publicOutcomes.push(
+              `Assassinated ${target.name}'s ${CARDS[killed.cardId].name}`
+            );
           }
         }
       } else if (cardId === "BLACKMAIL") {
@@ -1250,6 +1285,8 @@ export default function GuildOfShadows() {
             type: "warning",
             id: Date.now(),
           });
+          publicOutcomes.push(`Targeted ${target.name}`);
+          publicOutcomes.push("Blocked by Bodyguard!");
         } else {
           if (secondaryTarget === "GOLD") {
             const amount = Math.min(target.gold, 4);
@@ -1262,6 +1299,9 @@ export default function GuildOfShadows() {
               type: "danger",
               id: Date.now(),
             });
+            publicOutcomes.push(
+              `Blackmailed ${target.name} for ${amount} Gold`
+            );
           } else {
             const idx = parseInt(secondaryTarget);
             if (!isNaN(idx) && target.tableau[idx]) {
@@ -1275,6 +1315,9 @@ export default function GuildOfShadows() {
                 type: "danger",
                 id: Date.now(),
               });
+              publicOutcomes.push(
+                `Stole ${target.name}'s ${CARDS[stolen.cardId].name}`
+              );
             }
           }
         }
@@ -1286,6 +1329,7 @@ export default function GuildOfShadows() {
             type: "failure",
             id: Date.now(),
           });
+          publicOutcomes.push("Effect Fizzled");
         } else {
           logs.push({
             text: `🎭 ${me.name} copies ${CARDS[prevAction.cardId].name}...`,
@@ -1298,6 +1342,7 @@ export default function GuildOfShadows() {
               me.gold += 2;
               netChange += 2;
               reportGains.push({ desc: "Copied Urchin", amount: 2 });
+              publicOutcomes.push("Mimicked Urchin: +2 Gold");
             }
             if (copyId === "HEIST") {
               const roll = Math.floor(Math.random() * 6) + 1;
@@ -1305,6 +1350,9 @@ export default function GuildOfShadows() {
                 me.gold += 5;
                 netChange += 5;
                 reportGains.push({ desc: "Copied Heist", amount: 5 });
+                publicOutcomes.push("Mimicked Heist: +5 Gold!");
+              } else {
+                publicOutcomes.push("Mimicked Heist: Failed.");
               }
             }
           } else {
@@ -1316,6 +1364,8 @@ export default function GuildOfShadows() {
               type: "neutral",
               id: Date.now(),
             });
+            publicOutcomes.push(`Mimicked ${CARDS[copyId].name}`);
+            publicOutcomes.push("Bonus: +3 Gold");
           }
         }
       }
@@ -1351,6 +1401,14 @@ export default function GuildOfShadows() {
       seen: false,
     };
 
+    const publicEvent = {
+      id: Date.now(),
+      type: "PLAY",
+      actorName: me.name,
+      cardId: cardId,
+      outcomes: publicOutcomes,
+    };
+
     setSelectedCardIdx(null);
     setTargetMode(null);
     setSelectedTargetPlayerId(null);
@@ -1362,7 +1420,8 @@ export default function GuildOfShadows() {
       discardPile,
       logs,
       newLastAction,
-      eveningReport
+      eveningReport,
+      publicEvent
     );
   };
 
@@ -1394,9 +1453,25 @@ export default function GuildOfShadows() {
       seen: false,
     };
 
+    const publicEvent = {
+      id: Date.now(),
+      type: "DISCARD",
+      actorName: me.name,
+      cardId: null,
+      outcomes: [`Discarded ${CARDS[discarded].name}`, "Hand limit enforced"],
+    };
+
     setSelectedCardIdx(null);
     setTargetMode(null);
-    await nextTurn(players, deck, discardPile, logs, null, eveningReport);
+    await nextTurn(
+      players,
+      deck,
+      discardPile,
+      logs,
+      null,
+      eveningReport,
+      publicEvent
+    );
   };
 
   const handleCardClick = (idx) => {
@@ -1538,9 +1613,25 @@ export default function GuildOfShadows() {
       seen: false,
     };
 
+    const publicEvent = {
+      id: Date.now(),
+      type: "SCOUT",
+      actorName: me.name,
+      cardId: null,
+      outcomes: ["Discarded 1 card", "Drew 1 replacement"],
+    };
+
     setSelectedCardIdx(null);
     setTargetMode(null);
-    await nextTurn(players, deck, discardPile, logs, null, eveningReport);
+    await nextTurn(
+      players,
+      deck,
+      discardPile,
+      logs,
+      null,
+      eveningReport,
+      publicEvent
+    );
   };
 
   const handlePeek = () => {
@@ -1779,8 +1870,11 @@ export default function GuildOfShadows() {
       {/* --- NOTIFICATIONS --- */}
       {feedback && <FeedbackOverlay {...feedback} />}
 
-      {/* ADD THIS LINE HERE: */}
-      <GlobalActionNotification notification={globalNotification} />
+      {/* --- ACTION BROADCAST --- */}
+      <ActionBroadcast
+        event={activeEvent}
+        onClose={() => setActiveEvent(null)}
+      />
 
       {/* RENDER LOGIC: Ensure Mutual Exclusivity and Proper Layering */}
       {peekCard && (
