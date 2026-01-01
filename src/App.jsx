@@ -56,6 +56,7 @@ import {
   Sparkles,
   Loader2,
   ChevronRight,
+  PlayCircle, // Added icon
 } from "lucide-react";
 
 // ---------------------------------------------------------------------------
@@ -295,7 +296,7 @@ const FeedbackOverlay = ({ type, message, subtext, icon: Icon }) => (
   </div>
 );
 
-// --- NEW COMPONENT: GLOBAL ACTION BROADCAST ---
+// --- GLOBAL ACTION BROADCAST ---
 const ActionBroadcast = ({ event, onClose }) => {
   useEffect(() => {
     if (event) {
@@ -2013,6 +2014,13 @@ export default function GuildOfShadows() {
                         ${isSelected ? "ring-2 ring-red-500 bg-red-900/20" : ""}
                       `}
                 >
+                  {/* PLAYING STATUS BADGE */}
+                  {isActive && (
+                    <div className="absolute -top-2 left-1/2 -translate-x-1/2 bg-purple-600 text-purple-100 text-[9px] px-2 py-0.5 rounded-full font-bold shadow-lg animate-pulse z-10 whitespace-nowrap flex items-center gap-1">
+                      <PlayCircle size={8} /> PLAYING
+                    </div>
+                  )}
+
                   <div className="flex justify-between items-start mb-3">
                     <div className="flex flex-col">
                       <span className="text-sm font-bold text-gray-200 flex items-center gap-1.5 truncate max-w-[100px]">
@@ -2092,6 +2100,15 @@ export default function GuildOfShadows() {
         <div className="bg-gray-950 border-t border-purple-900/30 pb-safe z-40 shadow-[0_-10px_40px_rgba(0,0,0,0.8)] flex flex-col shrink-0">
           {/* 0. REPORT AREA (PERSISTENT & INLINE ABOVE STATUS) */}
           <div className="w-full bg-black/20">
+            {/* YOUR TURN BANNER */}
+            {isMyTurn && (
+              <div className="w-full bg-green-600/20 border-y border-green-500/30 py-1 flex items-center justify-center animate-pulse">
+                <span className="text-green-400 font-bold tracking-[0.3em] text-[10px] md:text-xs uppercase flex items-center gap-2">
+                  <PlayCircle size={10} /> Your Turn
+                </span>
+              </div>
+            )}
+
             {!peekCard && morningReportData ? (
               <MorningReportInline report={morningReportData} />
             ) : !peekCard && eveningReportData ? (
@@ -2341,6 +2358,50 @@ export default function GuildOfShadows() {
             {gameState.players.find((p) => p.id === gameState.winnerId)?.name}{" "}
             is the new Guild Master!
           </p>
+
+          {/* FINAL SCOREBOARD */}
+          <div className="bg-gray-800/80 p-5 rounded-2xl mb-6 w-full max-w-sm border border-gray-700 shadow-xl">
+            <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-4 border-b border-gray-700 pb-2">
+              Final Standings
+            </h3>
+            <div className="space-y-3">
+              {[...gameState.players]
+                .sort((a, b) => b.gold - a.gold)
+                .map((p, i) => (
+                  <div
+                    key={p.id}
+                    className="flex justify-between items-center bg-black/30 p-2 rounded"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={`
+                            w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold
+                            ${
+                              i === 0
+                                ? "bg-yellow-500 text-black"
+                                : "bg-gray-700 text-gray-300"
+                            }
+                         `}
+                      >
+                        {i + 1}
+                      </div>
+                      <span
+                        className={`font-bold ${
+                          p.id === gameState.winnerId
+                            ? "text-yellow-400"
+                            : "text-white"
+                        }`}
+                      >
+                        {p.name}
+                      </span>
+                    </div>
+                    <div className="font-mono text-yellow-500 font-bold flex items-center gap-1">
+                      {p.gold} <Coins size={12} />
+                    </div>
+                  </div>
+                ))}
+            </div>
+          </div>
 
           <div className="bg-gray-800/50 p-4 rounded-xl mb-6 w-full max-w-sm">
             <h4 className="text-sm font-bold text-gray-400 mb-2 uppercase tracking-widest">
