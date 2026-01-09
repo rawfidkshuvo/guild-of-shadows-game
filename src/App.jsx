@@ -250,7 +250,7 @@ const Logo = () => (
 
 const LogoBig = () => (
   <div className="flex items-center justify-center gap-1 opacity-40 mt-auto pb-2 pt-2 relative z-10">
-    <Ghost size={20} className="text-purple-500" />
+    <Ghost size={22} className="text-purple-500" />
     <span className="text-[20px] font-black tracking-widest text-purple-500 uppercase">
       GUILD OF SHADOWS
     </span>
