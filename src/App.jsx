@@ -248,6 +248,15 @@ const Logo = () => (
   </div>
 );
 
+const LogoBig = () => (
+  <div className="flex items-center justify-center gap-1 opacity-40 mt-auto pb-2 pt-2 relative z-10">
+    <Ghost size={20} className="text-purple-500" />
+    <span className="text-[20px] font-black tracking-widest text-purple-500 uppercase">
+      GUILD OF SHADOWS
+    </span>
+  </div>
+);
+
 const calculateWinGoal = (playerCount) => {
   if (playerCount <= 2) return 20;
   if (playerCount === 3) return 18;
@@ -1782,10 +1791,11 @@ export default function GuildOfShadows() {
     return (
       <div className="min-h-screen bg-gray-950 text-white flex flex-col items-center justify-center p-4 relative">
         <FloatingBackground />
+        <LogoBig />
         <div className="z-10 w-full max-w-md bg-gray-900/90 backdrop-blur p-6 rounded-2xl border border-purple-900/50 shadow-2xl">
           <div className="flex justify-between items-center mb-6 border-b border-gray-800 pb-4">
             <h2 className="text-xl font-serif text-purple-400">
-              Room:{" "}
+              Shadow Hall:{" "}
               <span className="text-white font-mono">{gameState.roomId}</span>
             </h2>
             <button
@@ -1839,7 +1849,7 @@ export default function GuildOfShadows() {
                   : "bg-green-700 hover:bg-green-600 text-white"
               }`}
             >
-              Start Game
+              Start Operation
             </button>
           ) : (
             <div className="text-center text-purple-400/60 animate-pulse text-sm">
