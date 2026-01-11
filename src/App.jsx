@@ -963,6 +963,7 @@ export default function GuildOfShadows() {
         deck,
         players,
         turnIndex: 0,
+        totalTurns: 0, // <--- ADD THIS LINE (Initialize global turn counter)
         logs: [
           {
             text: "The struggle for the Guild begins...",
@@ -1047,6 +1048,11 @@ export default function GuildOfShadows() {
     let nextIdx = (gameState.turnIndex + 1) % updatedPlayers.length;
     let nextPlayer = updatedPlayers[nextIdx];
 
+    // --- CALCULATE GLOBAL TURN COUNT ---
+    // Default to 0 if undefined (for backward compatibility)
+    const currentTotalTurns = gameState.totalTurns || 0; 
+    const newTotalTurns = currentTotalTurns + 1;
+
     // --- AGENT DECAY LOGIC ---
     const expiredAgents = [];
     const survivedAgents = [];
@@ -1067,8 +1073,14 @@ export default function GuildOfShadows() {
     const incomeBreakdown = [];
 
     // 1. Guild Stipend
-    incomeBreakdown.push({ source: "Guild Stipend", amount: 1 });
-    totalIncome += 1;
+    // LOGIC CHANGE: Only give stipend if we are past the first round of turns.
+    // e.g., if 2 players: 
+    // Turn 0 (P1) -> Next is Turn 1 (P2). 1 < 2, No Stipend.
+    // Turn 1 (P2) -> Next is Turn 2 (P1). 2 >= 2, Stipend Active.
+    if (newTotalTurns >= updatedPlayers.length) {
+      incomeBreakdown.push({ source: "Guild Stipend", amount: 1 });
+      totalIncome += 1;
+    }
 
     // 2. Merchants
     nextPlayer.tableau.forEach((c) => {
@@ -1154,6 +1166,7 @@ export default function GuildOfShadows() {
         deck,
         discardPile,
         turnIndex: nextIdx,
+        totalTurns: newTotalTurns, // <--- ADD THIS LINE (Save the new count)
         logs: arrayUnion(...logs),
         lastAction: lastAction !== null ? lastAction : gameState.lastAction,
         turnReport,
