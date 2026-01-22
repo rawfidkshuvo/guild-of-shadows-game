@@ -689,7 +689,9 @@ const EveningReportInline = ({ report }) => {
 export default function GuildOfShadows() {
   const [user, setUser] = useState(null);
   const [view, setView] = useState("menu");
-  const [playerName, setPlayerName] = useState("");
+  const [playerName, setPlayerName] = useState(
+    () => localStorage.getItem("guildofshadows_playerName") || ""
+  );
   const [roomCode, setRoomCode] = useState("");
 
   const [gameState, setGameState] = useState(null);
@@ -736,6 +738,10 @@ export default function GuildOfShadows() {
     initAuth();
     return onAuthStateChanged(auth, setUser);
   }, []);
+
+  useEffect(() => {
+    if (playerName) localStorage.setItem("guildofshadows_playerName", playerName);
+  }, [playerName]);
 
   useEffect(() => {
     if (!roomId || !user) return;
