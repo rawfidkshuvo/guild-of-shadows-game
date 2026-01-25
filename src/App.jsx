@@ -273,7 +273,7 @@ const FloatingBackground = ({ isShaking }) => (
       isShaking ? "animate-shake bg-red-900/20" : ""
     }`}
   >
-    <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-yellow-900/20 via-gray-950 to-black" />
+    <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(ellipse_at_top,var(--tw-gradient-stops))] from-yellow-900/20 via-gray-950 to-black" />
     <div className="absolute top-0 left-0 w-full h-full opacity-10">
       {[...Array(20)].map((_, i) => {
         const fruitKeys = Object.keys(CARDS);
@@ -281,7 +281,7 @@ const FloatingBackground = ({ isShaking }) => (
         return (
           <div
             key={i}
-            className="absolute animate-float text-white/20"
+            className="absolute animate-float text-white/60"
             style={{
               left: `${Math.random() * 100}%`,
               top: `${Math.random() * 100}%`,
@@ -312,7 +312,7 @@ const FloatingBackground = ({ isShaking }) => (
 );
 
 const FeedbackOverlay = ({ type, message, subtext, icon: Icon }) => (
-  <div className="fixed inset-0 z-[160] flex items-center justify-center pointer-events-none animate-in fade-in zoom-in duration-300 px-4">
+  <div className="fixed inset-0 z-160 flex items-center justify-center pointer-events-none animate-in fade-in zoom-in duration-300 px-4">
     <div
       className={`
       flex flex-col items-center justify-center p-6 md:p-12 rounded-3xl border-4 shadow-2xl backdrop-blur-xl max-w-lg w-full text-center
@@ -361,10 +361,10 @@ const ActionBroadcast = ({ event, onClose }) => {
   const card = event.cardId ? CARDS[event.cardId] : null;
 
   return (
-    <div className="fixed inset-0 z-[180] flex items-center justify-center pointer-events-none px-4">
+    <div className="fixed inset-0 z-180 flex items-center justify-center pointer-events-none px-4">
       <div className="bg-gray-900/95 backdrop-blur-xl border-2 border-purple-500/50 shadow-[0_0_50px_rgba(168,85,247,0.4)] rounded-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-4 duration-300 pointer-events-auto">
         {/* HEADER: Actor Name */}
-        <div className="bg-gradient-to-r from-gray-900 via-purple-900 to-gray-900 p-3 text-center border-b border-purple-500/30">
+        <div className="bg-linear-to-r from-gray-900 via-purple-900 to-gray-900 p-3 text-center border-b border-purple-500/30">
           <h3 className="font-bold text-lg text-white tracking-widest uppercase flex items-center justify-center gap-2">
             <User size={18} className="text-purple-400" />
             {event.actorName}
@@ -526,7 +526,7 @@ const CardDisplay = ({
 };
 
 const GuideModal = ({ onClose }) => (
-  <div className="fixed inset-0 bg-black/95 z-[200] p-4 flex items-center justify-center">
+  <div className="fixed inset-0 bg-black/95 z-200 p-4 flex items-center justify-center">
     <div className="bg-gray-900 w-full max-w-2xl max-h-[85vh] flex flex-col rounded-2xl border border-gray-800 overflow-hidden shadow-2xl">
       <div className="p-4 border-b border-gray-800 flex justify-between items-center bg-gray-950">
         <h2 className="font-serif text-xl font-bold text-purple-400 flex items-center gap-2">
@@ -1768,7 +1768,7 @@ export default function GuildOfShadows() {
             size={64}
             className="text-purple-500 mx-auto mb-4 animate-bounce drop-shadow-lg"
           />
-          <h1 className="text-5xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-b from-purple-400 to-indigo-600 font-serif tracking-widest">
+          <h1 className="text-5xl md:text-6xl font-black text-transparent bg-clip-text bg-linear-to-b from-purple-400 to-indigo-600 font-serif tracking-widest">
             GUILD OF SHADOWS
           </h1>
           <p className="text-white-400/60 tracking-[0.3em] uppercase mt-2">
@@ -1793,7 +1793,7 @@ export default function GuildOfShadows() {
           <button
             onClick={createRoom}
             disabled={loading}
-            className="w-full bg-gradient-to-r from-purple-700 to-indigo-600 hover:from-purple-600 p-3 rounded font-bold mb-3 flex items-center justify-center gap-2 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full bg-linear-to-r from-purple-700 to-indigo-600 hover:from-purple-600 p-3 rounded font-bold mb-3 flex items-center justify-center gap-2 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? (
               <Loader2 size={18} className="animate-spin" />
@@ -1936,7 +1936,7 @@ export default function GuildOfShadows() {
   const hasLookout = me.tableau.some((c) => c.cardId === "LOOKOUT");
 
   return (
-    <div className="h-[100dvh] bg-gray-950 text-white overflow-hidden flex flex-col relative font-sans">
+    <div className="h-dvh bg-gray-950 text-white overflow-hidden flex flex-col relative font-sans">
       <FloatingBackground />
 
       {/* --- NOTIFICATIONS --- */}
@@ -1951,7 +1951,7 @@ export default function GuildOfShadows() {
       {/* RENDER LOGIC: Ensure Mutual Exclusivity and Proper Layering */}
       {peekCard && (
         <div
-          className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur"
+          className="fixed inset-0 z-200 flex items-center justify-center bg-black/80 backdrop-blur"
           onClick={() => setPeekCard(null)}
         >
           <div className="animate-in zoom-in duration-200 flex flex-col items-center p-8">
@@ -1970,7 +1970,7 @@ export default function GuildOfShadows() {
 
       {/* DOPPELGANGER CONFIRMATION MODAL */}
       {doppelgangerConfirm && (
-        <div className="fixed inset-0 z-[190] bg-black/90 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-190 bg-black/90 flex items-center justify-center p-4">
           <div className="bg-gray-800 border-2 border-cyan-500 rounded-2xl w-full max-w-sm flex flex-col items-center p-6 shadow-[0_0_30px_rgba(34,211,238,0.2)] animate-in zoom-in-95">
             <Copy size={48} className="text-cyan-400 mb-4" />
             <h3 className="text-2xl font-bold text-white mb-2">Doppelganger</h3>
@@ -2018,7 +2018,7 @@ export default function GuildOfShadows() {
       )}
 
       {/* --- TOP BAR --- */}
-      <div className="h-14 bg-gray-900/90 border-b border-gray-800 flex items-center justify-between px-4 z-[160] shrink-0 shadow-md">
+      <div className="h-14 bg-gray-900/90 border-b border-gray-800 flex items-center justify-between px-4 z-160 shrink-0 shadow-md">
         <div className="flex items-center gap-2">
           <span className="font-serif text-purple-500 font-bold hidden md:inline text-lg">
             GUILD OF SHADOWS
@@ -2108,7 +2108,7 @@ export default function GuildOfShadows() {
                       {p.hand.map((_, h) => (
                         <div
                           key={h}
-                          className="w-2.5 h-4 bg-gradient-to-b from-purple-800 to-purple-950 rounded-[2px] border border-purple-600/50 shadow-sm"
+                          className="w-2.5 h-4 bg-linear-to-b from-purple-800 to-purple-950 rounded-[2px] border border-purple-600/50 shadow-sm"
                         />
                       ))}
                     </div>
@@ -2360,7 +2360,7 @@ export default function GuildOfShadows() {
 
       {/* --- MODALS --- */}
       {showLogs && (
-        <div className="fixed top-16 right-4 w-64 max-h-60 bg-gray-900/95 border border-gray-700 rounded-xl z-[155] overflow-y-auto p-2 shadow-2xl">
+        <div className="fixed top-16 right-4 w-64 max-h-60 bg-gray-900/95 border border-gray-700 rounded-xl z-155 overflow-y-auto p-2 shadow-2xl">
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-xl font-bold text-white">Shadow Log</h3>
             <button onClick={() => setShowLogs(false)}>
@@ -2390,7 +2390,7 @@ export default function GuildOfShadows() {
       )}
 
       {showLeaveConfirm && (
-        <div className="fixed inset-0 z-[200] bg-black/90 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-200 bg-black/90 flex items-center justify-center p-4">
           <div className="bg-gray-800 p-6 rounded-2xl w-full max-w-sm text-center">
             <h3 className="text-lg font-bold mb-4">Abandon the Guild?</h3>
             <div className="flex flex-col gap-2">
@@ -2422,7 +2422,7 @@ export default function GuildOfShadows() {
       )}
 
       {gameState.status === "finished" && (
-        <div className="fixed inset-0 top-14 z-[150] bg-black/90 flex flex-col items-center justify-center p-6 text-center animate-in fade-in">
+        <div className="fixed inset-0 top-14 z-150 bg-black/90 flex flex-col items-center justify-center p-6 text-center animate-in fade-in">
           <Trophy size={80} className="text-yellow-400 mb-6 animate-bounce" />
           <h2 className="text-4xl font-black text-white mb-2">GAME OVER</h2>
           <p className="text-2xl text-purple-400 font-serif mb-8">
