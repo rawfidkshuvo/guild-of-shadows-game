@@ -1004,13 +1004,16 @@ export default function GuildOfShadows() {
       ready: false,
     }));
 
+    // 2. Calculate Random Start Index
+    const randomStartIndex = Math.floor(Math.random() * players.length);
+
     await updateDoc(
       doc(db, "artifacts", APP_ID, "public", "data", "rooms", roomId),
       {
         status: "playing",
         deck,
         players,
-        turnIndex: 0,
+        turnIndex: randomStartIndex,
         totalTurns: 0, // <--- ADD THIS LINE (Initialize global turn counter)
         logs: [
           {
