@@ -68,7 +68,7 @@ const firebaseConfig = {
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
   storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
   messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
 const app = initializeApp(firebaseConfig);
@@ -320,8 +320,8 @@ const FeedbackOverlay = ({ type, message, subtext, icon: Icon }) => (
         type === "success"
           ? "bg-green-950/90 border-green-500 text-green-100"
           : type === "failure"
-          ? "bg-red-950/90 border-red-500 text-red-100"
-          : "bg-blue-950/90 border-blue-500 text-blue-100"
+            ? "bg-red-950/90 border-red-500 text-red-100"
+            : "bg-blue-950/90 border-blue-500 text-blue-100"
       }
     `}
     >
@@ -373,8 +373,8 @@ const ActionBroadcast = ({ event, onClose }) => {
             {isScout
               ? "Scouting Mission"
               : isDiscard
-              ? "Forced Discard"
-              : "Played Action"}
+                ? "Forced Discard"
+                : "Played Action"}
           </div>
         </div>
 
@@ -467,8 +467,8 @@ const CardDisplay = ({
       className={`
         relative rounded-xl border-2 shadow-lg transition-all flex flex-col items-center justify-between cursor-pointer active:scale-95 touch-manipulation overflow-visible shrink-0
         ${sizeClasses} ${card.bg} ${
-        highlight ? "ring-4 ring-yellow-400 z-10 scale-105" : card.border
-      }
+          highlight ? "ring-4 ring-yellow-400 z-10 scale-105" : card.border
+        }
         ${
           disabled
             ? "opacity-50 grayscale cursor-not-allowed"
@@ -726,7 +726,7 @@ const EveningReportInline = ({ report }) => {
 export default function GuildOfShadows() {
   const [user, setUser] = useState(null);
   const [view, setView] = useState("menu");
-  
+
   const [roomCode, setRoomCode] = useState("");
 
   const [gameState, setGameState] = useState(null);
@@ -736,7 +736,7 @@ export default function GuildOfShadows() {
 
   // PERSISTENCE FIX: Load room ID from local storage
   const [roomId, setRoomId] = useState(
-    localStorage.getItem("guild_room_id") || ""
+    localStorage.getItem("guild_room_id") || "",
   );
   const [isMaintenance, setIsMaintenance] = useState(false);
 
@@ -763,7 +763,7 @@ export default function GuildOfShadows() {
 
   //read and fill global name
   const [playerName, setPlayerName] = useState(
-    () => localStorage.getItem("gameHub_playerName") || ""
+    () => localStorage.getItem("gameHub_playerName") || "",
   );
   //set global name for all game
   useEffect(() => {
@@ -782,8 +782,6 @@ export default function GuildOfShadows() {
     initAuth();
     return onAuthStateChanged(auth, setUser);
   }, []);
-
-  
 
   useEffect(() => {
     if (!roomId || !user) return;
@@ -844,7 +842,7 @@ export default function GuildOfShadows() {
           setError("The Guild Hall was disbanded by the host.");
         }
       },
-      (err) => console.error(err)
+      (err) => console.error(err),
     );
   }, [roomId, user]);
 
@@ -895,7 +893,7 @@ export default function GuildOfShadows() {
           turnReport: null,
           eveningReport: null,
           latestPublicEvent: null, // Init
-        }
+        },
       );
       setRoomId(newId);
       localStorage.setItem("guild_room_id", newId); // Persist
@@ -920,7 +918,7 @@ export default function GuildOfShadows() {
         "public",
         "data",
         "rooms",
-        roomCode
+        roomCode,
       );
       const snap = await getDoc(ref);
       if (!snap.exists()) {
@@ -967,7 +965,7 @@ export default function GuildOfShadows() {
       doc(db, "artifacts", APP_ID, "public", "data", "rooms", roomId),
       {
         players: newPlayers,
-      }
+      },
     );
   };
 
@@ -976,7 +974,7 @@ export default function GuildOfShadows() {
     if (gameState.hostId === user.uid) {
       // Host leaves -> Delete Room
       await deleteDoc(
-        doc(db, "artifacts", APP_ID, "public", "data", "rooms", roomId)
+        doc(db, "artifacts", APP_ID, "public", "data", "rooms", roomId),
       );
     } else {
       const newPlayers = gameState.players.filter((p) => p.id !== user.uid);
@@ -984,13 +982,28 @@ export default function GuildOfShadows() {
         doc(db, "artifacts", APP_ID, "public", "data", "rooms", roomId),
         {
           players: newPlayers,
-        }
+        },
       );
     }
     setRoomId("");
     localStorage.removeItem("guild_room_id");
     setView("menu");
     setShowLeaveConfirm(false);
+  };
+
+  const copyToClipboard = () => {
+    try {
+      navigator.clipboard.writeText(roomId);
+      triggerFeedback("neutral", "COPIED!", "", CheckCircle);
+    } catch (e) {
+      const el = document.createElement("textarea");
+      el.value = roomId;
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand("copy");
+      document.body.removeChild(el);
+      triggerFeedback("neutral", "COPIED!", "", CheckCircle);
+    }
   };
 
   const startGame = async () => {
@@ -1026,7 +1039,7 @@ export default function GuildOfShadows() {
         turnReport: null,
         eveningReport: null,
         latestPublicEvent: null,
-      }
+      },
     );
   };
 
@@ -1037,7 +1050,7 @@ export default function GuildOfShadows() {
     });
     await updateDoc(
       doc(db, "artifacts", APP_ID, "public", "data", "rooms", roomId),
-      { players }
+      { players },
     );
   };
 
@@ -1060,7 +1073,7 @@ export default function GuildOfShadows() {
         logs: [],
         players,
         latestPublicEvent: null,
-      }
+      },
     );
     setShowLeaveConfirm(false);
   };
@@ -1094,14 +1107,14 @@ export default function GuildOfShadows() {
     logs,
     lastAction = null,
     eveningReport = null,
-    publicEvent = null
+    publicEvent = null,
   ) => {
     let nextIdx = (gameState.turnIndex + 1) % updatedPlayers.length;
     let nextPlayer = updatedPlayers[nextIdx];
 
     // --- CALCULATE GLOBAL TURN COUNT ---
     // Default to 0 if undefined (for backward compatibility)
-    const currentTotalTurns = gameState.totalTurns || 0; 
+    const currentTotalTurns = gameState.totalTurns || 0;
     const newTotalTurns = currentTotalTurns + 1;
 
     // --- AGENT DECAY LOGIC ---
@@ -1125,7 +1138,7 @@ export default function GuildOfShadows() {
 
     // 1. Guild Stipend
     // LOGIC CHANGE: Only give stipend if we are past the first round of turns.
-    // e.g., if 2 players: 
+    // e.g., if 2 players:
     // Turn 0 (P1) -> Next is Turn 1 (P2). 1 < 2, No Stipend.
     // Turn 1 (P2) -> Next is Turn 2 (P1). 2 >= 2, Stipend Active.
     if (newTotalTurns >= updatedPlayers.length) {
@@ -1186,7 +1199,7 @@ export default function GuildOfShadows() {
             type: "success",
             id: Date.now() + 2,
           }),
-        }
+        },
       );
       return;
     }
@@ -1223,7 +1236,7 @@ export default function GuildOfShadows() {
         turnReport,
         eveningReport: eveningReport,
         latestPublicEvent: publicEvent, // SAVE GLOBAL EVENT
-      }
+      },
     );
   };
 
@@ -1236,7 +1249,7 @@ export default function GuildOfShadows() {
     discardPile,
     logs,
     meIdx,
-    tax
+    tax,
   ) => {
     const me = players[meIdx];
     const card = CARDS[cardId];
@@ -1347,7 +1360,7 @@ export default function GuildOfShadows() {
               id: Date.now(),
             });
             publicOutcomes.push(
-              `Assassinated ${target.name}'s ${CARDS[killed.cardId].name}`
+              `Assassinated ${target.name}'s ${CARDS[killed.cardId].name}`,
             );
           }
         }
@@ -1374,7 +1387,7 @@ export default function GuildOfShadows() {
               id: Date.now(),
             });
             publicOutcomes.push(
-              `Blackmailed ${target.name} for ${amount} Gold`
+              `Blackmailed ${target.name} for ${amount} Gold`,
             );
           } else {
             const idx = parseInt(secondaryTarget);
@@ -1390,7 +1403,7 @@ export default function GuildOfShadows() {
                 id: Date.now(),
               });
               publicOutcomes.push(
-                `Stole ${target.name}'s ${CARDS[stolen.cardId].name}`
+                `Stole ${target.name}'s ${CARDS[stolen.cardId].name}`,
               );
             }
           }
@@ -1460,7 +1473,7 @@ export default function GuildOfShadows() {
             type: "success",
             id: Date.now() + 2,
           }),
-        }
+        },
       );
       return; // Do NOT call nextTurn
     }
@@ -1495,7 +1508,7 @@ export default function GuildOfShadows() {
       logs,
       newLastAction,
       eveningReport,
-      publicEvent
+      publicEvent,
     );
   };
 
@@ -1544,7 +1557,7 @@ export default function GuildOfShadows() {
       logs,
       null,
       eveningReport,
-      publicEvent
+      publicEvent,
     );
   };
 
@@ -1570,7 +1583,7 @@ export default function GuildOfShadows() {
         "failure",
         "Insufficient Funds",
         `Cost: ${card.cost} + ${tax} Tax`,
-        Coins
+        Coins,
       );
       return;
     }
@@ -1645,7 +1658,7 @@ export default function GuildOfShadows() {
       discardPile,
       logs,
       gameState.turnIndex,
-      tax
+      tax,
     );
   };
 
@@ -1704,7 +1717,7 @@ export default function GuildOfShadows() {
       logs,
       null,
       eveningReport,
-      publicEvent
+      publicEvent,
     );
   };
 
@@ -1858,10 +1871,20 @@ export default function GuildOfShadows() {
         <LogoBig />
         <div className="z-10 w-full max-w-md bg-gray-900/90 backdrop-blur p-6 rounded-2xl border border-purple-900/50 shadow-2xl">
           <div className="flex justify-between items-center mb-6 border-b border-gray-800 pb-4">
-            <h2 className="text-xl font-serif text-purple-400">
-              Shadow Hall:{" "}
-              <span className="text-white font-mono">{gameState.roomId}</span>
-            </h2>
+            {/* Grouping Title and Copy Button together on the left */}
+            <div className="flex items-center gap-2">
+              <h2 className="text-xl font-serif text-purple-400">
+                Shadow Hall:{" "}
+                <span className="text-white font-mono">{gameState.roomId}</span>
+              </h2>
+              <button
+                onClick={copyToClipboard}
+                className="p-2 hover:bg-white/10 rounded-full transition-colors text-gray-400 hover:text-white"
+                title="Copy Room ID"
+              >
+                <Copy size={16} />
+              </button>
+            </div>
             <button
               onClick={handleLeaveRoom}
               className="text-red-400 hover:text-red-300"
@@ -2233,7 +2256,7 @@ export default function GuildOfShadows() {
                         "neutral",
                         "Discard Mode",
                         "Hand limit reached",
-                        Trash2
+                        Trash2,
                       );
                     }}
                     className="flex-1 max-w-xs bg-red-900/90 hover:bg-red-800 text-red-100 border border-red-500/50 px-6 py-2.5 rounded-xl font-bold shadow-lg flex items-center justify-center gap-2 text-sm transition-all active:scale-95"
@@ -2378,8 +2401,8 @@ export default function GuildOfShadows() {
                   l.type === "danger"
                     ? "bg-red-900/20 border-red-500"
                     : l.type === "success"
-                    ? "bg-green-900/20 border-green-500"
-                    : "bg-gray-800 border-gray-600"
+                      ? "bg-green-900/20 border-green-500"
+                      : "bg-gray-800 border-gray-600"
                 }`}
               >
                 <span className="opacity-70 text-[10px] block mb-1">
