@@ -1942,7 +1942,7 @@ export default function GuildOfShadows() {
               </div>
             </div>
             <button
-              onClick={handleLeaveRoom}
+              onClick={() => setShowLeaveConfirm(true)}
               className="text-red-400 hover:text-red-300"
             >
               <LogOut size={20} />
@@ -2000,6 +2000,32 @@ export default function GuildOfShadows() {
             </div>
           )}
         </div>
+        {/* ADD THIS HERE: */}
+        {showLeaveConfirm && (
+          <div className="fixed inset-0 z-200 bg-black/90 flex items-center justify-center p-4">
+            <div className="bg-gray-800 p-6 rounded-2xl w-full max-w-sm text-center border border-gray-700 shadow-2xl">
+              <h3 className="text-lg font-bold mb-4 text-white">
+                Abandon the Guild?
+              </h3>
+              <div className="flex flex-col gap-2">
+                <button
+                  onClick={() => setShowLeaveConfirm(false)}
+                  className="bg-gray-700 hover:bg-gray-600 py-3 rounded font-bold transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleLeaveRoom}
+                  className="bg-red-600 hover:bg-red-500 py-3 rounded font-bold transition-colors"
+                >
+                  {gameState.hostId === user.uid
+                    ? "Disband Guild (Delete Room)"
+                    : "Leave Game"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
         <Logo />
       </div>
     );
