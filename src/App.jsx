@@ -2131,7 +2131,7 @@ export default function GuildOfShadows() {
           <span className="font-serif text-purple-500 font-bold hidden md:inline text-lg">
             GUILD OF SHADOWS
           </span>
-          <span className="bg-purple-900/40 text-purple-300 text-xs px-3 py-1 rounded-full border border-purple-800/50 font-mono tracking-wider shadow-[0_0_10px_rgba(168,85,247,0.2)]">
+          <span className="bg-purple-900/40 text-yellow-500 text-xs px-3 py-1 rounded-full border border-purple-800/50 font-mono tracking-wider shadow-[0_0_10px_rgba(168,85,247,0.2)]">
             Goal: {winGoal} <Coins size={10} className="inline ml-0.5" />
           </span>
         </div>
